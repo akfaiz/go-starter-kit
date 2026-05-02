@@ -7,6 +7,7 @@ import (
 	"github.com/akfaiz/go-starter-kit/internal/config"
 	appmiddleware "github.com/akfaiz/go-starter-kit/internal/delivery/http/middleware"
 	"github.com/akfaiz/go-starter-kit/internal/validator"
+	echoopentelemetry "github.com/labstack/echo-opentelemetry"
 	"github.com/labstack/echo/v5"
 	echomiddleware "github.com/labstack/echo/v5/middleware"
 )
@@ -16,6 +17,7 @@ func New(cfg config.Config) *echo.Echo {
 	e.Validator = validator.New()
 	e.HTTPErrorHandler = customHTTPErrorHandler
 	e.Pre(echomiddleware.RemoveTrailingSlash())
+	e.Use(echoopentelemetry.NewMiddleware(cfg.Telemetry.ServiceName))
 	e.Use(appmiddleware.Logger(slog.Default()))
 	e.Use(echomiddleware.Recover())
 	e.Use(echomiddleware.RequestID())

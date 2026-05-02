@@ -56,7 +56,7 @@ func (s *service) Register(ctx context.Context, user *domain.User) (*domain.Pair
 		return nil, err
 	}
 
-	return s.jwtManager.GeneratePairToken(&domain.JWTClaims{
+	return s.issuePairToken(ctx, &domain.JWTClaims{
 		ID:    user.ID,
 		Name:  user.Name,
 		Email: user.Email,
@@ -81,7 +81,7 @@ func (s *service) Login(ctx context.Context, email, password string) (*domain.Pa
 		Name:  user.Name,
 		Email: user.Email,
 	}
-	return s.jwtManager.GeneratePairToken(claims)
+	return s.issuePairToken(ctx, claims)
 }
 
 func (s *service) RefreshToken(ctx context.Context, refreshToken string) (*domain.PairToken, error) {
@@ -89,6 +89,25 @@ func (s *service) RefreshToken(ctx context.Context, refreshToken string) (*domai
 	if err != nil {
 		return nil, err
 	}
+
+	stored, err := s.userTokenRepo.FindOne(ctx, claims.ID, domain.TokenTypeRefreshToken)
+	if err != nil {
+		if errors.Is(err, domain.ErrResourceNotFound) {
+			return nil, errdefs.ErrUnauthorized("invalid refresh token")
+		}
+		return nil, err
+	}
+	if time.Now().After(stored.ExpiresAt) {
+		return nil, errdefs.ErrUnauthorized("refresh token expired")
+	}
+	match, err := s.passwordHasher.Verify(refreshToken, stored.Token)
+	if err != nil {
+		return nil, err
+	}
+	if !match {
+		return nil, errdefs.ErrUnauthorized("invalid refresh token")
+	}
+
 	user, err := s.userRepo.FindByID(ctx, claims.ID)
 	if err != nil {
 		return nil, err
@@ -98,7 +117,7 @@ func (s *service) RefreshToken(ctx context.Context, refreshToken string) (*domai
 		Name:  user.Name,
 		Email: user.Email,
 	}
-	return s.jwtManager.GeneratePairToken(claims)
+	return s.issuePairToken(ctx, claims)
 }
 
 func (s *service) SendForgotPasswordOTP(ctx context.Context, email string) error {
@@ -154,7 +173,32 @@ func (s *service) ResetPasswordWithOTP(ctx context.Context, email, otp, newPassw
 		return err
 	}
 	_ = s.userTokenRepo.Delete(ctx, user.ID, domain.TokenTypeForgotPasswordOTP)
+	_ = s.userTokenRepo.Delete(ctx, user.ID, domain.TokenTypeRefreshToken)
 	return nil
+}
+
+func (s *service) issuePairToken(ctx context.Context, claims *domain.JWTClaims) (*domain.PairToken, error) {
+	pairToken, err := s.jwtManager.GeneratePairToken(claims)
+	if err != nil {
+		return nil, err
+	}
+
+	hashedRefreshToken, err := s.passwordHasher.Hash(pairToken.RefreshToken)
+	if err != nil {
+		return nil, err
+	}
+
+	refreshToken := &domain.UserToken{
+		UserID:    claims.ID,
+		Token:     hashedRefreshToken,
+		TokenType: domain.TokenTypeRefreshToken,
+		ExpiresAt: time.Now().Add(s.cfg.Auth.JWT.RefreshExpires),
+	}
+	if err := s.userTokenRepo.Create(ctx, refreshToken); err != nil {
+		return nil, err
+	}
+
+	return pairToken, nil
 }
 
 func (s *service) validateForgotPasswordOTP(ctx context.Context, email, otp string) (*domain.User, error) {

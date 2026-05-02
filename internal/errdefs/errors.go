@@ -12,6 +12,7 @@ var (
 	ErrForbidden           = register("Forbidden access", "about:blank", 403)
 	ErrNotFound            = register("Resource not found", "about:blank", 404)
 	ErrConflict            = register("Resource conflict", "about:blank", 409)
+	ErrTooManyRequests     = register("Too Many Requests", "about:blank", 429)
 	ErrUnprocessableEntity = register("Unprocessable entity", "about:blank", 422)
 	ErrInternalServer      = register("Internal Server Error", "about:blank", 500)
 

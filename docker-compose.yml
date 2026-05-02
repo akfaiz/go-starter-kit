@@ -12,6 +12,23 @@ services:
       FRONTEND_BASE_URL: ${FRONTEND_BASE_URL}
       LOG_LEVEL: ${LOG_LEVEL}
       LOG_FORMAT: ${LOG_FORMAT}
+      OTEL_ENABLED: ${OTEL_ENABLED}
+      OTEL_SERVICE_NAME: ${OTEL_SERVICE_NAME}
+      OTEL_EXPORTER: ${OTEL_EXPORTER}
+      OTEL_EXPORTER_OTLP_ENDPOINT: jaeger:4317
+      OTEL_EXPORTER_OTLP_INSECURE: ${OTEL_EXPORTER_OTLP_INSECURE}
+      OTEL_TRACES_SAMPLER_RATIO: ${OTEL_TRACES_SAMPLER_RATIO}
+      OTEL_EXPORT_TIMEOUT: ${OTEL_EXPORT_TIMEOUT}
+      REDIS_ADDR: redis:6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+      REDIS_DB: ${REDIS_DB}
+      REDIS_PREFIX: ${REDIS_PREFIX}
+      AUTH_LOGIN_LIMIT_ATTEMPTS: ${AUTH_LOGIN_LIMIT_ATTEMPTS}
+      AUTH_LOGIN_LIMIT_WINDOW: ${AUTH_LOGIN_LIMIT_WINDOW}
+      AUTH_LOGIN_LOCKOUT_THRESHOLD: ${AUTH_LOGIN_LOCKOUT_THRESHOLD}
+      AUTH_LOGIN_LOCKOUT_DURATION: ${AUTH_LOGIN_LOCKOUT_DURATION}
+      AUTH_REFRESH_LIMIT_ATTEMPTS: ${AUTH_REFRESH_LIMIT_ATTEMPTS}
+      AUTH_REFRESH_LIMIT_WINDOW: ${AUTH_REFRESH_LIMIT_WINDOW}
       DB_HOST: db
       DB_PORT: ${DB_PORT}
       DB_USER: ${DB_USER}
@@ -30,6 +47,10 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      redis:
+        condition: service_healthy
+      jaeger:
+        condition: service_started
     restart: unless-stopped
 
   db:
@@ -48,6 +69,27 @@ services:
       start_period: 5s
     volumes:
       - db_data:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 3s
+    restart: unless-stopped
+
+  jaeger:
+    image: jaegertracing/all-in-one:1.64.0
+    ports:
+      - "16686:16686"
+      - "4317:4317"
+    environment:
+      COLLECTOR_OTLP_ENABLED: "true"
     restart: unless-stopped
 
 volumes:

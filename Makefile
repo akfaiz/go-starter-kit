@@ -10,6 +10,10 @@ tidy:
 test:
 	go test ./...
 
+.PHONY: fmt
+fmt:
+	go fmt ./...
+
 .PHONY: run
 run:
 	go run . serve

@@ -15,7 +15,9 @@ import (
 	"github.com/akfaiz/go-starter-kit/internal/logger"
 	"github.com/akfaiz/go-starter-kit/internal/provider"
 	"github.com/akfaiz/go-starter-kit/internal/repository"
+	"github.com/akfaiz/go-starter-kit/internal/security"
 	"github.com/akfaiz/go-starter-kit/internal/service"
+	"github.com/akfaiz/go-starter-kit/internal/telemetry"
 	"github.com/labstack/echo/v5"
 	"github.com/urfave/cli/v3"
 	"go.uber.org/fx"
@@ -58,11 +60,13 @@ func appOptions(cfg config.Config) []fx.Option {
 			return slogLogger
 		}),
 		fx.Supply(cfg, cfg.Auth, cfg.Auth.JWT, cfg.Database),
-		fx.Provide(db.NewDatabase),
+		fx.Provide(db.NewDatabase, db.NewRedisClient),
 		repository.Module,
 		hash.Module,
 		provider.Module,
+		security.Module,
 		service.Module,
+		telemetry.Module,
 		deliveryhttp.Module,
 		fx.Invoke(httpServerLifecycle),
 	}

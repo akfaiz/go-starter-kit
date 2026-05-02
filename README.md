@@ -7,9 +7,13 @@ API-only starter kit built with Go.
 - Echo v5
 - OpenAPI router: `github.com/oaswrap/spec/adapter/echov5openapi`
 - Bun + PostgreSQL
+- Redis (auth rate limit + lockout)
 - Migris migrations
 - JWT auth (access + refresh)
+- Refresh token rotation + DB-backed revocation
 - Forgot password with OTP via email
+- OpenTelemetry tracing (HTTP, Bun DB, Redis)
+- Jaeger for local trace visualization
 - go-mailgen for email content
 - Uber FX for dependency injection
 
@@ -24,6 +28,17 @@ go run . serve
 
 Server: `http://localhost:8080`
 OpenAPI docs: `http://localhost:8080/docs`
+Jaeger UI: `http://localhost:16686`
+
+## Auth Security
+
+- Refresh token is rotated and stored hashed in `user_tokens`.
+- Refresh token reuse/mismatch is rejected.
+- Password reset revokes stored refresh token.
+- Redis-backed rate limiting:
+  - Login: IP limit + email lockout on repeated failures.
+  - Refresh token: IP limit.
+- Limited requests return `429` and `Retry-After` header.
 
 ## Auth Endpoints
 
@@ -47,3 +62,22 @@ go run . migrate down
 ```bash
 docker compose up --build
 ```
+
+Services started by compose:
+
+- App: `http://localhost:8080`
+- PostgreSQL: `localhost:5432`
+- Redis: `localhost:6379`
+- Jaeger UI: `http://localhost:16686`
+
+## Observability (OTel)
+
+Telemetry env vars are available in `.env.example`:
+
+- `OTEL_ENABLED`
+- `OTEL_SERVICE_NAME`
+- `OTEL_EXPORTER` (`otlp` or `none`)
+- `OTEL_EXPORTER_OTLP_ENDPOINT` (default: `jaeger:4317`)
+- `OTEL_EXPORTER_OTLP_INSECURE`
+- `OTEL_TRACES_SAMPLER_RATIO`
+- `OTEL_EXPORT_TIMEOUT`

@@ -1,7 +1,6 @@
 package server
 
 import (
-	"fmt"
 	"net/http"
 
 	"github.com/akfaiz/go-starter-kit/internal/errdefs"
@@ -47,10 +46,10 @@ func customHTTPErrorHandler(c *echo.Context, err error) {
 	}
 
 	code := http.StatusInternalServerError
-	var httpErr *echo.HTTPError
-	if errors.As(err, &httpErr) {
-		code = httpErr.Code
-		appError = errdefs.New(fmt.Sprintf("%v", httpErr.Message), "about:blank", code)
+	var statusCoder echo.HTTPStatusCoder
+	if errors.As(err, &statusCoder) {
+		code = statusCoder.StatusCode()
+		appError = errdefs.New(http.StatusText(code), "about:blank", code)
 	} else {
 		appError = errdefs.ErrInternalServer()
 	}
