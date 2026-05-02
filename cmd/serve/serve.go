@@ -8,12 +8,11 @@ import (
 	"net/http"
 
 	"github.com/akfaiz/go-starter-kit/internal/config"
-	"github.com/akfaiz/go-starter-kit/internal/db"
 	deliveryhttp "github.com/akfaiz/go-starter-kit/internal/delivery/http"
 	"github.com/akfaiz/go-starter-kit/internal/hash"
+	"github.com/akfaiz/go-starter-kit/internal/infra"
 	"github.com/akfaiz/go-starter-kit/internal/lang"
 	"github.com/akfaiz/go-starter-kit/internal/logger"
-	"github.com/akfaiz/go-starter-kit/internal/provider"
 	"github.com/akfaiz/go-starter-kit/internal/repository"
 	"github.com/akfaiz/go-starter-kit/internal/security"
 	"github.com/akfaiz/go-starter-kit/internal/service"
@@ -60,10 +59,9 @@ func appOptions(cfg config.Config) []fx.Option {
 			return slogLogger
 		}),
 		fx.Supply(cfg, cfg.Auth, cfg.Auth.JWT, cfg.Database),
-		fx.Provide(db.NewDatabase, db.NewRedisClient),
+		infra.Module,
 		repository.Module,
 		hash.Module,
-		provider.Module,
 		security.Module,
 		service.Module,
 		telemetry.Module,

@@ -7,6 +7,7 @@ import (
 	"github.com/akfaiz/go-starter-kit/internal/delivery/http/handler/dto"
 	"github.com/akfaiz/go-starter-kit/internal/domain"
 	"github.com/akfaiz/go-starter-kit/internal/errdefs"
+	"github.com/akfaiz/go-starter-kit/internal/security"
 	"github.com/akfaiz/go-starter-kit/internal/validator"
 	"github.com/invopop/ctxi18n/i18n"
 	"github.com/labstack/echo/v5"
@@ -14,10 +15,10 @@ import (
 
 type AuthHandler struct {
 	authService domain.AuthService
-	authGuard   domain.AuthGuard
+	authGuard   security.AuthGuard
 }
 
-func NewAuthHandler(authService domain.AuthService, authGuard domain.AuthGuard) *AuthHandler {
+func NewAuthHandler(authService domain.AuthService, authGuard security.AuthGuard) *AuthHandler {
 	return &AuthHandler{authService: authService, authGuard: authGuard}
 }
 
