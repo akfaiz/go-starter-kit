@@ -1,0 +1,97 @@
+package routes
+
+import (
+	"fmt"
+
+	"github.com/akfaiz/go-starter-kit/internal/config"
+	"github.com/akfaiz/go-starter-kit/internal/delivery/http/handler"
+	"github.com/akfaiz/go-starter-kit/internal/delivery/http/handler/dto"
+	"github.com/labstack/echo/v5"
+	"github.com/oaswrap/spec/adapter/echov5openapi"
+	"github.com/oaswrap/spec/option"
+	"go.uber.org/fx"
+)
+
+type RouteConfig struct {
+	fx.In
+	Echo   *echo.Echo
+	Config config.Config
+
+	AuthMiddleware echo.MiddlewareFunc `name:"auth"`
+
+	AuthHandler        *handler.AuthHandler
+	ProfileHandler     *handler.ProfileHandler
+	HealthCheckHandler *handler.HealthCheckHandler
+}
+
+func Register(rc RouteConfig) {
+	rc.Echo.GET("/health", rc.HealthCheckHandler.HealthCheck)
+	r := echov5openapi.NewRouter(rc.Echo,
+		option.WithTitle("Go Starter Kit API"),
+		option.WithVersion("1.0.0"),
+		option.WithDescription("API starterkit with Echo v5, Bun, Migris, and OTP auth reset flow"),
+		option.WithReflectorConfig(option.StripDefNamePrefix("Dto")),
+		option.WithSecurity("bearerAuth", option.SecurityHTTPBearer("Bearer")),
+		option.WithServer(fmt.Sprintf("http://localhost:%d", rc.Config.Server.Port), option.ServerDescription("Local server")),
+	)
+
+	v1 := r.Group("/api/v1")
+	auth := v1.Group("/auth").With(option.GroupTags("Authentication"))
+	auth.POST("/register", rc.AuthHandler.Register).With(
+		option.Summary("User Registration"),
+		option.Request(new(dto.RegisterRequest)),
+		option.Response(201, responseOf(dto.TokenResponse{})),
+	)
+	auth.POST("/login", rc.AuthHandler.Login).With(
+		option.Summary("User Login"),
+		option.Request(new(dto.LoginRequest)),
+		option.Response(200, responseOf(dto.TokenResponse{})),
+	)
+	auth.POST("/refresh-token", rc.AuthHandler.RefreshToken).With(
+		option.Summary("Refresh Token"),
+		option.Request(new(dto.RefreshTokenRequest)),
+		option.Response(200, responseOf(dto.TokenResponse{})),
+	)
+	auth.POST("/forgot-password/send-otp", rc.AuthHandler.SendForgotPasswordOTP).With(
+		option.Summary("Send forgot password OTP"),
+		option.Request(new(dto.SendForgotPasswordOTPRequest)),
+		option.Response(200, responseOf[any](nil)),
+	)
+	auth.POST("/forgot-password/verify-otp", rc.AuthHandler.VerifyForgotPasswordOTP).With(
+		option.Summary("Verify forgot password OTP"),
+		option.Request(new(dto.VerifyForgotPasswordOTPRequest)),
+		option.Response(200, responseOf[any](nil)),
+	)
+	auth.POST("/forgot-password/reset-password", rc.AuthHandler.ResetPasswordWithOTP).With(
+		option.Summary("Reset password with OTP"),
+		option.Request(new(dto.ResetPasswordWithOTPRequest)),
+		option.Response(200, responseOf[any](nil)),
+	)
+
+	profile := v1.Group("/profile", rc.AuthMiddleware).With(
+		option.GroupTags("Profile"),
+		option.GroupSecurity("bearerAuth"),
+	)
+	profile.GET("", rc.ProfileHandler.GetProfile).With(
+		option.Summary("Get profile"),
+		option.Response(200, responseOf(dto.ProfileResponse{})),
+	)
+	profile.PUT("", rc.ProfileHandler.UpdateProfile).With(
+		option.Summary("Update profile"),
+		option.Request(new(dto.UpdateProfileRequest)),
+		option.Response(200, responseOf(dto.ProfileResponse{})),
+	)
+	profile.PUT("/password", rc.ProfileHandler.ChangePassword).With(
+		option.Summary("Update password"),
+		option.Request(new(dto.ChangePasswordRequest)),
+		option.Response(200, responseOf[any](nil)),
+	)
+}
+
+func responseOf[T any](model T) any {
+	return struct {
+		dto.Response[T]
+	}{
+		Response: dto.Response[T]{Data: model},
+	}
+}

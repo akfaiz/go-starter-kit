@@ -1,0 +1,61 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ "**" ]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tests-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  golangci:
+    name: Go Lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - name: Lint with golangci-lint
+        uses: golangci/golangci-lint-action@v8
+        with:
+          version: latest
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          args: --timeout=2m --verbose
+
+  test:
+    name: Go Unit Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          check-latest: true
+          cache: true
+      - name: Install Tools
+        run: |
+          set -euo pipefail
+          go install github.com/onsi/ginkgo/v2/ginkgo@latest
+      - name: Run tests
+        run: make test.ci
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage
+          path: coverage.out
+      - name: Upload JUnit test report
+        uses: actions/upload-artifact@v4
+        with:
+          name: junit-report
+          path: junit.xml

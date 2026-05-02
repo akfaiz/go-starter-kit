@@ -1,0 +1,14 @@
+**/.git
+**/.env
+**/.cache
+**/.DS_Store
+bin
+tmp
+coverage
+.github
+.air.toml
+docker-compose.yml
+coverage.out
+coverage.html
+.env.local
+.env.*.local
