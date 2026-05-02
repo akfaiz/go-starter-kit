@@ -1,6 +1,10 @@
 package config
 
-import "github.com/akfaiz/go-starter-kit/pkg/env"
+import (
+	"strings"
+
+	"github.com/akfaiz/go-starter-kit/pkg/env"
+)
 
 type Mail struct {
 	SMTP MailSMTP
@@ -12,6 +16,7 @@ type MailSMTP struct {
 	Port     int
 	Username string
 	Password string
+	TLSMode  string
 }
 
 type MailFrom struct {
@@ -26,6 +31,7 @@ func loadMailConfig() Mail {
 			Port:     env.GetInt("MAIL_PORT", 2525),
 			Username: env.GetString("MAIL_USERNAME"),
 			Password: env.GetString("MAIL_PASSWORD"),
+			TLSMode:  strings.ToLower(strings.TrimSpace(env.GetString("MAIL_TLS_MODE", "starttls"))),
 		},
 		From: MailFrom{
 			Address: env.GetString("MAIL_FROM_ADDRESS"),

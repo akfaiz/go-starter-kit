@@ -2,13 +2,15 @@ package db
 
 import (
 	"database/sql"
+	"log/slog"
+	"time"
 
 	"github.com/akfaiz/go-starter-kit/internal/config"
-	"github.com/akfaiz/go-starter-kit/pkg/bunslog"
 	"github.com/akfaiz/go-starter-kit/pkg/env"
 	"github.com/uptrace/bun"
 	"github.com/uptrace/bun/dialect/pgdialect"
 	"github.com/uptrace/bun/driver/pgdriver"
+	"github.com/uptrace/bun/extra/bunslog"
 )
 
 func NewDatabase(cfg config.Database) (*bun.DB, error) {
@@ -19,10 +21,15 @@ func NewDatabase(cfg config.Database) (*bun.DB, error) {
 		return nil, err
 	}
 	db := bun.NewDB(sqldb, pgdialect.New())
+
 	if env.GetBool("APP_DEBUG") {
-		db.AddQueryHook(bunslog.NewQueryHook(
-			bunslog.WithVerbose(true),
-		))
+		hook := bunslog.NewQueryHook(
+			bunslog.WithQueryLogLevel(slog.LevelDebug),
+			bunslog.WithSlowQueryLogLevel(slog.LevelWarn),
+			bunslog.WithErrorQueryLogLevel(slog.LevelError),
+			bunslog.WithSlowQueryThreshold(3*time.Second),
+		)
+		db.AddQueryHook(hook)
 	}
 
 	return db, nil

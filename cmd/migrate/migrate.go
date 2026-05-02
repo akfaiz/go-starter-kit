@@ -1,8 +1,8 @@
 package migrate
 
 import (
+	"context"
 	"database/sql"
-	"log"
 
 	_ "github.com/akfaiz/go-starter-kit/db/migrations"
 	"github.com/akfaiz/go-starter-kit/internal/config"
@@ -14,10 +14,25 @@ import (
 const migrationDir = "db/migrations"
 
 func Command() *cli.Command {
-	cfg := config.Load()
+	cfg, err := config.Load()
+	if err != nil {
+		return &cli.Command{
+			Name:  "migrate",
+			Usage: "Database migration commands",
+			Action: func(ctx context.Context, cmd *cli.Command) error {
+				return err
+			},
+		}
+	}
 	db, err := sql.Open("pgx", cfg.Database.DSN())
 	if err != nil {
-		log.Fatal(err)
+		return &cli.Command{
+			Name:  "migrate",
+			Usage: "Database migration commands",
+			Action: func(ctx context.Context, cmd *cli.Command) error {
+				return err
+			},
+		}
 	}
 
 	cliCfg := migriscli.Config{

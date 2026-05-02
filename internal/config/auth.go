@@ -24,10 +24,10 @@ func getAuthConfig() Auth {
 		ResetPasswordExpiration: 60 * time.Minute,
 		VerificationExpiration:  60 * time.Minute,
 		JWT: JWT{
-			AccessSecret:   env.MustGetString("JWT_ACCESS_SECRET"),
-			RefreshSecret:  env.MustGetString("JWT_REFRESH_SECRET"),
-			AccessExpires:  env.MustGetDuration("JWT_ACCESS_EXPIRES_IN"),
-			RefreshExpires: env.MustGetDuration("JWT_REFRESH_EXPIRES_IN"),
+			AccessSecret:   env.GetString("JWT_ACCESS_SECRET"),
+			RefreshSecret:  env.GetString("JWT_REFRESH_SECRET"),
+			AccessExpires:  env.GetDuration("JWT_ACCESS_EXPIRES_IN"),
+			RefreshExpires: env.GetDuration("JWT_REFRESH_EXPIRES_IN"),
 		},
 	}
 }

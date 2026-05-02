@@ -69,7 +69,7 @@ func (r *repository) FindByID(ctx context.Context, id int64) (*domain.User, erro
 func (r *repository) Update(ctx context.Context, id int64, data *domain.UserUpdate) error {
 	query := r.db.NewUpdate().Model((*model.User)(nil)).Where("id = ?", id)
 	query = model.ApplyUserUpdate(query, data)
-	_, err := query.Exec(ctx)
+	res, err := query.Exec(ctx)
 	if err != nil {
 		var pgError pgdriver.Error
 		if errors.As(err, &pgError) {
@@ -79,11 +79,28 @@ func (r *repository) Update(ctx context.Context, id int64, data *domain.UserUpda
 		}
 		return err
 	}
+	rows, err := res.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if rows == 0 {
+		return domain.ErrResourceNotFound
+	}
 
 	return nil
 }
 
 func (r *repository) Delete(ctx context.Context, id int64) error {
-	_, err := r.db.NewDelete().Model(&model.User{ID: id}).WherePK().Exec(ctx)
-	return err
+	res, err := r.db.NewDelete().Model(&model.User{ID: id}).WherePK().Exec(ctx)
+	if err != nil {
+		return err
+	}
+	rows, err := res.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if rows == 0 {
+		return domain.ErrResourceNotFound
+	}
+	return nil
 }

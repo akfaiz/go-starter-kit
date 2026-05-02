@@ -110,7 +110,10 @@ func (s *service) SendForgotPasswordOTP(ctx context.Context, email string) error
 		return err
 	}
 
-	otp := s.generateOTP(6)
+	otp, err := s.generateOTP(6)
+	if err != nil {
+		return err
+	}
 	hashedOTP, err := s.passwordHasher.Hash(otp)
 	if err != nil {
 		return err
@@ -197,16 +200,16 @@ func (s *service) buildEmailForgotPasswordOTP(user *domain.User, otp string) *ma
 		Line("If you did not request a password reset, ignore this email.")
 }
 
-func (s *service) generateOTP(length int) string {
+func (s *service) generateOTP(length int) (string, error) {
 	const digits = "0123456789"
 	max := big.NewInt(int64(len(digits)))
 	otp := make([]byte, length)
 	for i := range otp {
 		n, err := rand.Int(rand.Reader, max)
 		if err != nil {
-			return "000000"
+			return "", err
 		}
 		otp[i] = digits[n.Int64()]
 	}
-	return string(otp)
+	return string(otp), nil
 }

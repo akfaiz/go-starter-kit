@@ -22,8 +22,9 @@ require (
 	github.com/uptrace/bun v1.2.18
 	github.com/uptrace/bun/dialect/pgdialect v1.2.18
 	github.com/uptrace/bun/driver/pgdriver v1.2.18
+	github.com/uptrace/bun/extra/bunslog v1.2.18
 	github.com/urfave/cli/v3 v3.6.1
-	github.com/wneessen/go-mail v0.7.0
+	github.com/wneessen/go-mail v0.7.2
 	go.uber.org/fx v1.24.0
 	go.uber.org/mock v0.6.0
 	golang.org/x/crypto v0.50.0

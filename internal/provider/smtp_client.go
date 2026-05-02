@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/akfaiz/go-mailgen"
 	"github.com/akfaiz/go-starter-kit/internal/config"
@@ -19,13 +20,23 @@ type smtpMailer struct {
 
 func NewSMTPMailer(cfg config.Config) (domain.Mailer, error) {
 	smtp := cfg.Mail.SMTP
-	client, err := mail.NewClient(smtp.Host,
+	opts := []mail.Option{
 		mail.WithSMTPAuth(mail.SMTPAuthPlain),
 		mail.WithUsername(smtp.Username),
 		mail.WithPassword(smtp.Password),
 		mail.WithPort(smtp.Port),
-		mail.WithTLSPortPolicy(mail.NoTLS),
-	)
+	}
+
+	switch strings.ToLower(strings.TrimSpace(smtp.TLSMode)) {
+	case "tls":
+		opts = append(opts, mail.WithSSLPort(true))
+	case "none":
+		opts = append(opts, mail.WithTLSPortPolicy(mail.NoTLS))
+	default:
+		opts = append(opts, mail.WithTLSPortPolicy(mail.TLSMandatory))
+	}
+
+	client, err := mail.NewClient(smtp.Host, opts...)
 	if err != nil {
 		return nil, err
 	}

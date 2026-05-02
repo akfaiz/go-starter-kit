@@ -30,9 +30,9 @@ func loadDatabaseConfig() Database {
 	return Database{
 		Host:     env.GetString("DB_HOST", "localhost"),
 		Port:     env.GetInt("DB_PORT", 5432),
-		User:     env.MustGetString("DB_USER"),
+		User:     env.GetString("DB_USER"),
 		Password: env.GetString("DB_PASSWORD"),
-		Name:     env.MustGetString("DB_NAME"),
+		Name:     env.GetString("DB_NAME"),
 		SSLMode:  env.GetString("DB_SSLMODE", "disable"),
 	}
 }

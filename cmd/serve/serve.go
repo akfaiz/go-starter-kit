@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
 	"log/slog"
 	"net/http"
 
@@ -37,7 +36,10 @@ var Command = &cli.Command{
 }
 
 func newApp() (*fx.App, error) {
-	cfg := config.Load()
+	cfg, err := config.Load()
+	if err != nil {
+		return nil, err
+	}
 	options := appOptions(cfg)
 	lang.Init()
 	logger.Init(cfg.App)
@@ -74,11 +76,11 @@ func httpServerLifecycle(lc fx.Lifecycle, e *echo.Echo, cfg config.Config) {
 		OnStart: func(ctx context.Context) error {
 			go func() {
 				if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-					log.Fatal(err)
+					slog.Error("http server stopped unexpectedly", "error", err)
 				}
 			}()
-			log.Printf("server started at http://localhost:%d", cfg.Server.Port)
-			log.Printf("openapi docs at http://localhost:%d/docs", cfg.Server.Port)
+			slog.Info("server started", "url", fmt.Sprintf("http://localhost:%d", cfg.Server.Port))
+			slog.Info("openapi docs", "url", fmt.Sprintf("http://localhost:%d/docs", cfg.Server.Port))
 			return nil
 		},
 		OnStop: func(ctx context.Context) error {
