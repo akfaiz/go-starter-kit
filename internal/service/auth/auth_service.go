@@ -3,6 +3,7 @@ package auth
 import (
 	"context"
 	"crypto/rand"
+	"encoding/json"
 	"errors"
 	"math/big"
 	"time"
@@ -10,6 +11,8 @@ import (
 	"github.com/aarondl/opt/omit"
 	"github.com/akfaiz/go-mailgen"
 	"github.com/akfaiz/go-starter-kit/internal/config"
+	"github.com/akfaiz/go-starter-kit/internal/delivery/queue"
+	"github.com/akfaiz/go-starter-kit/internal/delivery/queue/handler/payload"
 	"github.com/akfaiz/go-starter-kit/internal/domain"
 	"github.com/akfaiz/go-starter-kit/internal/telemetry"
 	"go.opentelemetry.io/otel"
@@ -25,6 +28,7 @@ type service struct {
 	passwordHasher         domain.PasswordHasher
 	jwtManager             domain.JWTManager
 	mailer                 domain.Mailer
+	queue                  *queue.Client
 }
 
 func NewService(
@@ -35,6 +39,7 @@ func NewService(
 	passwordHasher domain.PasswordHasher,
 	jwtManager domain.JWTManager,
 	mailer domain.Mailer,
+	queue *queue.Client,
 ) domain.AuthService {
 	return &service{
 		cfg:                    cfg,
@@ -44,6 +49,7 @@ func NewService(
 		passwordHasher:         passwordHasher,
 		jwtManager:             jwtManager,
 		mailer:                 mailer,
+		queue:                  queue,
 	}
 }
 
@@ -153,9 +159,28 @@ func (s *service) SendForgotPasswordOTP(ctx context.Context, email string) error
 		return err
 	}
 
-	if err := s.mailer.Send(ctx, s.buildEmailForgotPasswordOTP(user, otp)); err != nil {
+	builder := s.buildEmailForgotPasswordOTP(user, otp)
+	message, err := builder.Build()
+	if err != nil {
 		return err
 	}
+
+	payload, err := json.Marshal(payload.MailPayload{
+		To:      message.To(),
+		Cc:      message.Cc(),
+		Bcc:     message.Bcc(),
+		Subject: message.Subject(),
+		Text:    message.PlainText(),
+		HTML:    message.HTML(),
+	})
+	if err != nil {
+		return err
+	}
+
+	if _, err := s.queue.EnqueueContext(ctx, queue.NewTask(ctx, queue.TypeMailSend, payload)); err != nil {
+		return err
+	}
+
 	return nil
 }
 

@@ -5,7 +5,9 @@ import (
 	"log"
 
 	"github.com/akfaiz/go-starter-kit/cmd/migrate"
+	"github.com/akfaiz/go-starter-kit/cmd/queue"
 	"github.com/akfaiz/go-starter-kit/cmd/serve"
+	"github.com/akfaiz/go-starter-kit/cmd/serveall"
 	"github.com/urfave/cli/v3"
 )
 
@@ -15,6 +17,8 @@ var cmd = &cli.Command{
 	Commands: []*cli.Command{
 		serve.Command,
 		migrate.Command(),
+		queue.Command,
+		serveall.Command,
 	},
 }
 

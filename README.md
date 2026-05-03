@@ -2,20 +2,34 @@
 
 API-only starter kit built with Go.
 
+## Overview
+
+This repository provides a layered Go API starter with:
+
+- HTTP API built with Echo v5
+- CLI entrypoints for serving the API, running migrations, and starting workers
+- PostgreSQL persistence with GORM
+- Redis-backed session storage, auth rate limiting, and queue support
+- JWT authentication with access and refresh tokens
+- Forgot-password flow with OTP email delivery
+- OpenTelemetry tracing across HTTP, DB, Redis, and queue flows
+- Uber FX dependency injection
+- Asynq background job processing
+
 ## Stack
 
 - Echo v5
-- OpenAPI router: `github.com/oaswrap/spec/adapter/echov5openapi`
 - GORM + PostgreSQL
-- Redis (auth rate limit + session store)
+- Redis (auth rate limit, session store, queue)
 - Migris migrations
 - JWT auth (access + refresh)
-- Token pair session management in Redis (access + refresh)
+- Token pair session management in Redis
 - Forgot password with OTP via email
-- OpenTelemetry tracing (HTTP, GORM DB, Redis)
+- OpenTelemetry tracing (HTTP, GORM DB, Redis, queue)
 - Jaeger for local trace visualization
 - go-mailgen for email content
 - Uber FX for dependency injection
+- Asynq (Redis-based distributed queue)
 
 ## Quick Start
 
@@ -30,6 +44,17 @@ Server: `http://localhost:8080`
 OpenAPI docs: `http://localhost:8080/docs`
 Jaeger UI: `http://localhost:16686`
 
+### CLI Commands
+
+```bash
+go run . serve
+go run . serve-all
+go run . queue
+go run . migrate status
+go run . migrate up
+go run . migrate down
+```
+
 ## Key Features
 
 - **Automatic Request Validation**: Leverage a custom binder that automatically validates request DTOs during `c.Bind`, reducing handler boilerplate.
@@ -37,6 +62,7 @@ Jaeger UI: `http://localhost:16686`
 - **Localized Validation**: Built-in support for multiple locales (English and Indonesian) in validation error messages.
 - **Dependency Injection**: Robust and modular component management using **Uber FX**.
 - **Observability**: Distributed tracing integrated at every level (HTTP, Database, Redis) using **OpenTelemetry**, with trace-to-log correlation in structured logs.
+- **Background Jobs**: Integrated background task processing using **Asynq**, managed via Uber FX lifecycle.
 - **Health Checks**: Comprehensive health check endpoint monitoring both Database and Redis connectivity.
 - **Security**: Pre-configured secure middleware (HSTS, CSP, etc.) and robust RFC 7807 error responses.
 - **Developer Experience**: Includes a `Makefile` for common tasks, `golangci-lint` configuration, and comprehensive unit/E2E testing setups.
@@ -45,19 +71,31 @@ Jaeger UI: `http://localhost:16686`
 
 This project follows a layered architecture pattern, organized into the following directory structure:
 
-- `cmd/`: Command-line entry points (`serve`, `migrate`).
-- `internal/`: Core application logic, separated by concerns:
-    - `config/`: Application configuration and environment mapping.
-    - `delivery/http/`: HTTP transport layer (handlers, routes, middleware).
-    - `domain/`: Business entities and repository/service interfaces.
-    - `service/`: Implementation of business logic.
-    - `repository/`: Data persistence logic (GORM).
-    - `infra/`: Infrastructure clients (PostgreSQL, Redis, SMTP).
-    - `hash/`: Password hashing and JWT management.
-    - `telemetry/`: Observability and tracing setup.
-- `db/migrations/`: SQL/Go database migration files.
-- `pkg/`: Shared utility packages (validation, error handling, environment helpers).
-- `test/`: Integration and E2E tests, along with mocks.
+```text
+.
+├── main.go            # CLI entrypoint
+├── cmd/               # Command-line entry points (serve, serve-all, queue, migrate)
+├── db/
+│   └── migrations/    # Database migration files
+├── internal/
+│   ├── config/        # Application configuration and environment mapping
+│   ├── delivery/
+│   │   ├── http/      # HTTP handlers, routes, middleware, and server
+│   │   └── queue/     # Queue client, worker, middleware, and handlers
+│   ├── domain/        # Business entities and domain errors
+│   ├── hash/          # Password hashing and JWT management
+│   ├── infra/         # Infrastructure clients (PostgreSQL, Redis, SMTP)
+│   ├── lang/          # Localization files
+│   ├── logger/        # Structured logging setup
+│   ├── model/         # Database models
+│   ├── repository/    # Data persistence logic
+│   ├── security/      # Auth guards and rate limiting
+│   ├── service/       # Business logic
+│   └── telemetry/     # OpenTelemetry setup
+├── pkg/               # Shared utility packages
+└── test/
+    └── e2e/           # End-to-end tests
+```
 
 ## Auth Security
 
@@ -79,6 +117,24 @@ This project follows a layered architecture pattern, organized into the followin
 - `POST /api/v1/auth/forgot-password/verify-otp`
 - `POST /api/v1/auth/forgot-password/reset-password`
 
+## Common Commands
+
+```bash
+make tidy
+make fmt
+make lint
+make test
+make test-e2e
+make coverage
+make coverage-all
+make run
+make migrate-up
+make migrate-down
+make build
+make docker-build
+make docker-run
+```
+
 ## Migrations
 
 ```bash
@@ -96,6 +152,7 @@ docker compose up --build
 Services started by compose:
 
 - App: `http://localhost:8080`
+- OpenAPI docs: `http://localhost:8080/docs`
 - PostgreSQL: `localhost:5432`
 - Redis: `localhost:6379`
 - Jaeger UI: `http://localhost:16686`

@@ -9,6 +9,7 @@ import (
 
 	"github.com/akfaiz/go-starter-kit/internal/config"
 	deliveryhttp "github.com/akfaiz/go-starter-kit/internal/delivery/http"
+	"github.com/akfaiz/go-starter-kit/internal/delivery/queue"
 	"github.com/akfaiz/go-starter-kit/internal/hash"
 	"github.com/akfaiz/go-starter-kit/internal/infra"
 	"github.com/akfaiz/go-starter-kit/internal/lang"
@@ -58,13 +59,14 @@ func appOptions(cfg config.Config) []fx.Option {
 			slogLogger.UseLogLevel(slog.LevelDebug)
 			return slogLogger
 		}),
-		fx.Supply(cfg, cfg.Auth, cfg.Auth.JWT, cfg.Database),
+		fx.Supply(cfg, cfg.Auth, cfg.Auth.JWT, cfg.Database, cfg.Redis),
 		infra.Module,
 		repository.Module,
 		hash.Module,
 		security.Module,
 		service.Module,
 		telemetry.Module,
+		queue.ClientModule,
 		deliveryhttp.Module,
 		fx.Invoke(httpServerLifecycle),
 	}

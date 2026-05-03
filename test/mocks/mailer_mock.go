@@ -13,7 +13,7 @@ import (
 	context "context"
 	reflect "reflect"
 
-	mailgen "github.com/akfaiz/go-mailgen"
+	domain "github.com/akfaiz/go-starter-kit/internal/domain"
 	gomock "go.uber.org/mock/gomock"
 )
 
@@ -42,15 +42,15 @@ func (m *MockMailer) EXPECT() *MockMailerMockRecorder {
 }
 
 // Send mocks base method.
-func (m *MockMailer) Send(ctx context.Context, msg *mailgen.Builder) error {
+func (m *MockMailer) Send(ctx context.Context, mail *domain.Mail) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Send", ctx, msg)
+	ret := m.ctrl.Call(m, "Send", ctx, mail)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // Send indicates an expected call of Send.
-func (mr *MockMailerMockRecorder) Send(ctx, msg any) *gomock.Call {
+func (mr *MockMailerMockRecorder) Send(ctx, mail any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Send", reflect.TypeOf((*MockMailer)(nil).Send), ctx, msg)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Send", reflect.TypeOf((*MockMailer)(nil).Send), ctx, mail)
 }

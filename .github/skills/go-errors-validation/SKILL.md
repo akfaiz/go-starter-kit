@@ -8,7 +8,7 @@ description: Using pkg/problem for standardized RFC 7807 errors and pkg/validato
 This project uses **RFC 7807 (Problem Details)** for error responses and `go-playground/validator` for localized input validation.
 
 ## Standardized Errors (`pkg/problem`)
-Always use `pkg/problem` to return errors from handlers or map domain errors in services.
+Use `pkg/problem` in handlers and transport-layer code to shape HTTP responses.
 
 ### Common Error Types
 - `problem.ErrBadRequest`: 400 Bad Request
@@ -70,3 +70,14 @@ func (h *MyHandler) Create(c *echo.Context) error {
     // ...
 }
 ```
+
+## Current Handler Pattern
+The existing handlers in `internal/delivery/http/handler/` follow this pattern:
+- `c.Bind(&req)` handles both binding and validation.
+- Domain errors are converted to localized validation or problem responses in the handler.
+- Unexpected errors are wrapped with `problem.Wrap(err, problem.ErrInternalServer)`.
+
+Example mappings used in the codebase:
+- `domain.ErrEmailAlreadyExists` -> `validator.NewError("email", "Email already registered")`
+- `domain.ErrInvalidToken` -> `problem.ErrUnauthorized(...)` or `problem.ErrBadRequest(...)` depending on the route
+- `domain.ErrUserNotFound` -> localized validation error for the email field in forgot-password flows

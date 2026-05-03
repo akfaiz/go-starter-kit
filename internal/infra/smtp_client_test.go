@@ -4,8 +4,8 @@ import (
 	"context"
 	"testing"
 
-	"github.com/akfaiz/go-mailgen"
 	"github.com/akfaiz/go-starter-kit/internal/config"
+	"github.com/akfaiz/go-starter-kit/internal/domain"
 	"github.com/akfaiz/go-starter-kit/internal/infra"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -68,19 +68,19 @@ func TestSMTPMailer_Send_Validation(t *testing.T) {
 	t.Run("nil builder", func(t *testing.T) {
 		err := mailer.Send(ctx, nil)
 		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "message builder cannot be nil")
+		assert.Contains(t, err.Error(), "mail message cannot be nil")
 	})
 
 	t.Run("no recipient", func(t *testing.T) {
-		builder := mailgen.New().Subject("Test")
-		err := mailer.Send(ctx, builder)
+		msg := &domain.Mail{Subject: "Test"}
+		err := mailer.Send(ctx, msg)
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "email recipient cannot be empty")
 	})
 
 	t.Run("no subject", func(t *testing.T) {
-		builder := mailgen.New().To("test@example.com")
-		err := mailer.Send(ctx, builder)
+		msg := &domain.Mail{To: []string{"test@example.com"}}
+		err := mailer.Send(ctx, msg)
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "email subject cannot be empty")
 	})

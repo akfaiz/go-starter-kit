@@ -9,6 +9,7 @@ import (
 
 	"github.com/akfaiz/go-starter-kit/internal/config"
 	deliveryhttp "github.com/akfaiz/go-starter-kit/internal/delivery/http"
+	"github.com/akfaiz/go-starter-kit/internal/delivery/queue"
 	"github.com/akfaiz/go-starter-kit/internal/hash"
 	"github.com/akfaiz/go-starter-kit/internal/infra"
 	"github.com/akfaiz/go-starter-kit/internal/lang"
@@ -116,7 +117,7 @@ var _ = BeforeSuite(func() {
 	}
 
 	e2eFXApp = fx.New(
-		fx.Supply(cfg, cfg.Auth, cfg.Auth.JWT, cfg.Database),
+		fx.Supply(cfg, cfg.Auth, cfg.Auth.JWT, cfg.Database, cfg.Redis),
 		infra.Module,
 		repository.Module,
 		hash.Module,
@@ -124,6 +125,7 @@ var _ = BeforeSuite(func() {
 		service.Module,
 		telemetry.Module,
 		deliveryhttp.Module,
+		queue.ClientModule,
 		fx.Populate(&e2eEcho, &e2eDB, &e2eRDB),
 	)
 	Expect(e2eFXApp.Err()).NotTo(HaveOccurred())

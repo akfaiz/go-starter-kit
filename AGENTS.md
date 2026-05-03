@@ -1,24 +1,29 @@
 # Repository Guidelines
 
 ## Project Structure & Module Organization
-- `main.go` is the CLI entrypoint; commands live in `cmd/` (`serve`, `migrate`, root wiring).
-- Core app code is in `internal/`: `delivery/http/` (handlers/routes/middleware/server), `service/` (business logic), `repository/` (data access), plus `domain/`, `model/`, `config/`, and helpers like `hash/`, `validator/`, `logger/`.
-- Shared reusable utilities are in `pkg/` (for example `pkg/env`).
+- `main.go` is the CLI entrypoint; `cmd/` contains the root wiring plus `serve`, `serve-all`, `queue`, and `migrate`.
+- Core app code is in `internal/`: `delivery/http/` (handlers/routes/middleware/server), `delivery/queue/` (workers, client, middleware, handlers), `service/` (business logic), `repository/` (data access), plus `domain/`, `model/`, `config/`, `infra/`, `security/`, `telemetry/`, `lang/`, `hash/`, and `logger/`.
+- Shared reusable utilities are in `pkg/` (for example `pkg/env`, `pkg/problem`, and `pkg/validator`).
 - Database migrations are in `db/migrations/`.
-- Tests are colocated with code as `*_test.go`; test helpers and generated mocks are in `test/mocks/`.
+- Tests are colocated with code as `*_test.go`; integration/E2E tests live in `test/e2e/`, and shared test helpers live in `test/`.
 
 ## Build, Test, and Development Commands
 - `make tidy`: sync module dependencies with `go.mod`/`go.sum`.
+- `make fmt`: run `go fmt ./...`.
+- `make lint` / `make lint-fix`: run or auto-fix `golangci-lint`.
 - `make run`: run the HTTP API locally (`go run . serve`).
-- `make test`: run all package tests (`go test ./...`).
+- `make test`: run the unit and package test suite via Ginkgo.
+- `make test-e2e`: run the end-to-end suite in `test/e2e/`.
+- `make coverage` / `make coverage-all`: generate coverage for unit tests or merged unit + E2E coverage.
 - `make migrate-up` / `make migrate-down`: apply or roll back schema migrations.
 - `make build`: compile binary to `bin/go-starter-kit`.
-- `docker compose up --build`: start local stack using containers.
+- `make docker-build` / `make docker-run`: build and run the container image.
+- `docker compose up --build`: start the local stack using containers.
 
 ## Coding Style & Naming Conventions
 - Follow standard Go formatting; run `gofmt` (or `go fmt ./...`) before pushing.
 - Use Go naming idioms: exported identifiers in `CamelCase`, unexported in `camelCase`, package names short/lowercase.
-- Keep layer boundaries explicit (`delivery -> service -> repository`) and avoid bypassing service logic from handlers.
+- Keep layer boundaries explicit (`delivery -> service -> repository`) and avoid bypassing service logic from handlers or queue consumers.
 - Use descriptive snake_case filenames for multiword files (for example `auth_handler.go`, `user_repository.go`).
 
 ## Architectural Boundaries & Mappings
@@ -28,12 +33,13 @@
 - **Domain Errors:** Services and internal logic must strictly return **Domain Errors** (defined in `internal/domain/error.go`).
 - **Error Mapping:** Handlers are responsible for mapping domain errors to HTTP-specific responses (using `pkg/problem` or `pkg/validator`).
 - **Service Isolation:** The service layer must never import `pkg/problem`, `pkg/validator`, or `internal/model`.
+- **Queue Isolation:** Queue handlers should depend on service/domain abstractions, not on HTTP delivery types.
 
 ## Testing Guidelines
 - Primary test command: `make test`.
-- Tests use Go `testing` with `testify`; Ginkgo/Gomega suites are also present for some modules.
+- Tests use Go `testing` with `testify`; Ginkgo/Gomega suites are used in several modules and E2E tests.
 - Name tests with `TestXxx` and keep them next to implementation files.
-- Prefer table-driven tests for service/repository behavior; use `test/mocks/` for dependency isolation.
+- Prefer table-driven tests for service/repository behavior; use `test/e2e/` for full-stack flows.
 
 ## Commit & Pull Request Guidelines
 - Current history is minimal (`initial project`) and uses short lowercase commit messages.

@@ -12,6 +12,7 @@ type Config struct {
 	Auth      Auth
 	Database  Database
 	Mail      Mail
+	Queue     Queue
 	RateLimit RateLimit
 	Redis     Redis
 	Server    Server
@@ -42,6 +43,7 @@ func loadConfig() Config {
 		Auth:      loadAuthConfig(),
 		Database:  loadDatabaseConfig(),
 		Mail:      loadMailConfig(),
+		Queue:     loadQueueConfig(),
 		RateLimit: loadRateLimitConfig(),
 		Redis:     loadRedisConfig(),
 		Server:    loadServerConfig(),

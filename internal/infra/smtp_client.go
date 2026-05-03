@@ -55,18 +55,14 @@ func NewSMTPMailer(cfg config.Config) (domain.Mailer, error) {
 	return mailer, nil
 }
 
-func (m *smtpMailer) Send(ctx context.Context, builder *mailgen.Builder) error {
-	if builder == nil {
-		return errors.New("message builder cannot be nil")
+func (m *smtpMailer) Send(ctx context.Context, message *domain.Mail) error {
+	if message == nil {
+		return errors.New("mail message cannot be nil")
 	}
-	message, err := builder.Build()
-	if err != nil {
-		return err
-	}
-	if len(message.To()) == 0 {
+	if len(message.To) == 0 {
 		return errors.New("email recipient cannot be empty")
 	}
-	if message.Subject() == "" {
+	if message.Subject == "" {
 		return errors.New("email subject cannot be empty")
 	}
 	msg := mail.NewMsg()
@@ -74,22 +70,22 @@ func (m *smtpMailer) Send(ctx context.Context, builder *mailgen.Builder) error {
 	if err := msg.From(from); err != nil {
 		return err
 	}
-	if err := msg.To(message.To()...); err != nil {
+	if err := msg.To(message.To...); err != nil {
 		return err
 	}
-	if len(message.Cc()) > 0 {
-		if err := msg.Cc(message.Cc()...); err != nil {
+	if len(message.Cc) > 0 {
+		if err := msg.Cc(message.Cc...); err != nil {
 			return err
 		}
 	}
-	if len(message.Bcc()) > 0 {
-		if err := msg.Bcc(message.Bcc()...); err != nil {
+	if len(message.Bcc) > 0 {
+		if err := msg.Bcc(message.Bcc...); err != nil {
 			return err
 		}
 	}
-	msg.Subject(message.Subject())
-	msg.SetBodyString(mail.TypeTextPlain, message.PlainText())
-	msg.SetBodyString(mail.TypeTextHTML, message.HTML())
+	msg.Subject(message.Subject)
+	msg.SetBodyString(mail.TypeTextPlain, message.Text)
+	msg.SetBodyString(mail.TypeTextHTML, message.HTML)
 
 	if err := m.client.DialAndSendWithContext(ctx, msg); err != nil {
 		return err

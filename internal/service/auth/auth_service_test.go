@@ -7,10 +7,12 @@ import (
 	"time"
 
 	"github.com/akfaiz/go-starter-kit/internal/config"
+	"github.com/akfaiz/go-starter-kit/internal/delivery/queue"
 	"github.com/akfaiz/go-starter-kit/internal/domain"
 	"github.com/akfaiz/go-starter-kit/internal/lang"
 	"github.com/akfaiz/go-starter-kit/internal/service/auth"
 	"github.com/akfaiz/go-starter-kit/test/mocks"
+	"github.com/alicebob/miniredis/v2"
 	"github.com/invopop/ctxi18n"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -36,10 +38,18 @@ var _ = Describe("Auth", Label("unit", "usecase"), func() {
 		mailerMock                 *mocks.MockMailer
 		cfg                        config.Config
 		svc                        domain.AuthService
+		mr                         *miniredis.Miniredis
+		workerClient               *queue.Client
 
 		ctx context.Context
 	)
 	BeforeEach(func() {
+		var err error
+		mr, err = miniredis.Run()
+		Expect(err).NotTo(HaveOccurred())
+
+		workerClient = queue.NewClient(config.Redis{Addr: mr.Addr()})
+
 		ctrl := gomock.NewController(GinkgoT())
 		userRepoMock = mocks.NewMockUserRepository(ctrl)
 		passwordResetTokenRepoMock = mocks.NewMockPasswordResetTokenRepository(ctrl)
@@ -63,6 +73,7 @@ var _ = Describe("Auth", Label("unit", "usecase"), func() {
 			hasherMock,
 			jwtManagerMock,
 			mailerMock,
+			workerClient,
 		)
 
 		ctx = context.Background()
@@ -70,6 +81,8 @@ var _ = Describe("Auth", Label("unit", "usecase"), func() {
 
 		DeferCleanup(func() {
 			ctrl.Finish()
+			workerClient.Close()
+			mr.Close()
 		})
 	})
 
@@ -410,7 +423,6 @@ var _ = Describe("Auth", Label("unit", "usecase"), func() {
 			userRepoMock.EXPECT().FindByEmail(gomock.Any(), "john@example.com").Return(user, nil)
 			hasherMock.EXPECT().Hash(gomock.Any()).Return("hashed-otp", nil)
 			passwordResetTokenRepoMock.EXPECT().Create(gomock.Any(), gomock.Any()).Return(nil)
-			mailerMock.EXPECT().Send(gomock.Any(), gomock.Any()).Return(nil)
 
 			err := svc.SendForgotPasswordOTP(ctx, "john@example.com")
 			Expect(err).NotTo(HaveOccurred())
@@ -442,17 +454,6 @@ var _ = Describe("Auth", Label("unit", "usecase"), func() {
 			passwordResetTokenRepoMock.EXPECT().
 				Create(gomock.Any(), gomock.Any()).
 				Return(errors.New("token creation failed"))
-
-			err := svc.SendForgotPasswordOTP(ctx, "john@example.com")
-			Expect(err).To(HaveOccurred())
-		})
-
-		It("should return error when email sending fails", func() {
-			user := &domain.User{ID: 1, Email: "john@example.com"}
-			userRepoMock.EXPECT().FindByEmail(gomock.Any(), "john@example.com").Return(user, nil)
-			hasherMock.EXPECT().Hash(gomock.Any()).Return("hashed-otp", nil)
-			passwordResetTokenRepoMock.EXPECT().Create(gomock.Any(), gomock.Any()).Return(nil)
-			mailerMock.EXPECT().Send(gomock.Any(), gomock.Any()).Return(errors.New("email send failed"))
 
 			err := svc.SendForgotPasswordOTP(ctx, "john@example.com")
 			Expect(err).To(HaveOccurred())

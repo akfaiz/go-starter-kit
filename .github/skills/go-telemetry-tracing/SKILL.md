@@ -5,15 +5,16 @@ description: OpenTelemetry, Jaeger, and tracing integration for observability. U
 
 # Telemetry and Tracing
 
-This project uses **OpenTelemetry (OTel)** for distributed tracing, with **Jaeger** for local visualization.
+This project uses **OpenTelemetry (OTel)** for distributed tracing. The default exporter is OTLP, and the default endpoint points at `jaeger:4317` in local compose setups.
 
 ## Tracing Architecture
 - **Location**: `internal/telemetry/`
-- **Exporters**: Configured to send traces to a collector (e.g., Jaeger) over OTLP.
+- **Exporters**: Configured through `internal/config/telemetry.go` and initialized in `internal/telemetry/tracing.go`.
 - **Instrumentations**:
-  - `Echo`: Traces incoming HTTP requests.
+  - `Echo`: Traces incoming HTTP requests via `echo-opentelemetry`.
   - `GORM`: Traces database queries.
-  - `Redis`: Traces cache operations.
+  - `Redis`: Traces cache operations via `redisotel`.
+  - `Asynq`: Traces queue enqueueing and worker processing.
 
 ## Adding Custom Tracing
 To add a custom span in a service or repository:
@@ -30,7 +31,15 @@ func (s *service) ComplexOperation(ctx context.Context) error {
 ```
 
 ## Viewing Traces
-When running locally with Docker Compose, Jaeger is usually available at `http://localhost:16686`.
+When running locally with Docker Compose, Jaeger UI is usually available at `http://localhost:16686` if the stack includes it.
 
 ## Configuration
-OTel configuration (endpoint, service name, sampling) is managed in `internal/config/telemetry.go` and initialized in `internal/telemetry/tracing.go`.
+OTel configuration (enabled flag, exporter, endpoint, insecure mode, sampling ratio, export timeout) is managed in `internal/config/telemetry.go` and initialized in `internal/telemetry/tracing.go`.
+
+## Current Defaults
+- `OTEL_ENABLED=true`
+- `OTEL_EXPORTER=otlp`
+- `OTEL_EXPORTER_OTLP_ENDPOINT=jaeger:4317`
+- `OTEL_EXPORTER_OTLP_INSECURE=true`
+- `OTEL_TRACES_SAMPLER_RATIO=1.0`
+- `OTEL_EXPORT_TIMEOUT=5s`

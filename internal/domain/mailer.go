@@ -3,10 +3,17 @@ package domain
 
 import (
 	"context"
-
-	"github.com/akfaiz/go-mailgen"
 )
 
+type Mail struct {
+	To      []string
+	Cc      []string
+	Bcc     []string
+	Subject string
+	Text    string
+	HTML    string
+}
+
 type Mailer interface {
-	Send(ctx context.Context, msg *mailgen.Builder) error
+	Send(ctx context.Context, mail *Mail) error
 }

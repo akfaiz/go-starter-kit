@@ -75,6 +75,8 @@ It("registers successfully", func() {
 
 ## Running Tests
 - **All tests**: `make test`
-- **Unit only**: `go test ./internal/...`
 - **E2E only**: `make test-e2e`
-- **Coverage**: `make coverage-html`
+- **Coverage**: `make coverage` or `make coverage-html`
+- **Full coverage merge**: `make coverage-all`
+
+`make test` runs the Ginkgo suite across the repo while skipping generated mocks, migrations, CLI commands, and E2E tests.
