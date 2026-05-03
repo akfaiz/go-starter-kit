@@ -2,14 +2,11 @@ package e2e_test
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"net/http/httptest"
-	"strconv"
 	"testing"
 	"time"
 
-	_ "github.com/akfaiz/go-starter-kit/db/migrations"
 	"github.com/akfaiz/go-starter-kit/internal/config"
 	deliveryhttp "github.com/akfaiz/go-starter-kit/internal/delivery/http"
 	"github.com/akfaiz/go-starter-kit/internal/hash"
@@ -19,15 +16,13 @@ import (
 	"github.com/akfaiz/go-starter-kit/internal/security"
 	"github.com/akfaiz/go-starter-kit/internal/service"
 	"github.com/akfaiz/go-starter-kit/internal/telemetry"
-	"github.com/akfaiz/migris"
+	"github.com/akfaiz/go-starter-kit/test"
 	"github.com/gavv/httpexpect/v2"
-	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/labstack/echo/v5"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"github.com/redis/go-redis/v9"
+	redisclient "github.com/redis/go-redis/v9"
 	"github.com/testcontainers/testcontainers-go"
-	"github.com/testcontainers/testcontainers-go/modules/postgres"
 	rediscontainer "github.com/testcontainers/testcontainers-go/modules/redis"
 	"github.com/uptrace/bun"
 	"go.uber.org/fx"
@@ -39,15 +34,15 @@ func TestE2E(t *testing.T) {
 }
 
 var (
-	e2eCtx    context.Context
-	e2ePG     *postgres.PostgresContainer
-	e2eRedisC *rediscontainer.RedisContainer
-	e2eDB     *bun.DB
-	e2eRDB    *redis.Client
-	e2eEcho   *echo.Echo
-	e2eFXApp  *fx.App
-	e2eServer *httptest.Server
-	e2eExpect *httpexpect.Expect
+	e2eCtx         context.Context
+	e2eDBContainer *test.DBContainer
+	e2eRedisC      *rediscontainer.RedisContainer
+	e2eDB          *bun.DB
+	e2eRDB         *redisclient.Client
+	e2eEcho        *echo.Echo
+	e2eFXApp       *fx.App
+	e2eServer      *httptest.Server
+	e2eExpect      *httpexpect.Expect
 )
 
 var _ = BeforeSuite(func() {
@@ -55,23 +50,10 @@ var _ = BeforeSuite(func() {
 	lang.Init()
 
 	var err error
-	e2ePG, err = postgres.Run(e2eCtx,
-		"postgres:16-alpine",
-		postgres.WithDatabase("e2e_db"),
-		postgres.WithUsername("postgres"),
-		postgres.WithPassword("postgres"),
-		postgres.BasicWaitStrategies(),
-	)
-	Expect(err).NotTo(HaveOccurred())
+	e2eDBContainer = test.NewDBContainer(e2eCtx, GinkgoT())
+	Expect(e2eDBContainer).NotTo(BeNil())
 
 	e2eRedisC, err = rediscontainer.Run(e2eCtx, "redis:7-alpine")
-	Expect(err).NotTo(HaveOccurred())
-
-	pgHost, err := e2ePG.Host(e2eCtx)
-	Expect(err).NotTo(HaveOccurred())
-	pgPort, err := e2ePG.MappedPort(e2eCtx, "5432/tcp")
-	Expect(err).NotTo(HaveOccurred())
-	pgPortNum, err := strconv.Atoi(pgPort.Port())
 	Expect(err).NotTo(HaveOccurred())
 
 	redisHost, err := e2eRedisC.Host(e2eCtx)
@@ -96,14 +78,7 @@ var _ = BeforeSuite(func() {
 				RefreshExpires: 24 * time.Hour,
 			},
 		},
-		Database: config.Database{
-			Host:     pgHost,
-			Port:     pgPortNum,
-			User:     "postgres",
-			Password: "postgres",
-			Name:     "e2e_db",
-			SSLMode:  "disable",
-		},
+		Database: e2eDBContainer.Config,
 		Mail: config.Mail{
 			SMTP: config.MailSMTP{
 				Host:     "localhost",
@@ -153,16 +128,6 @@ var _ = BeforeSuite(func() {
 	)
 	Expect(e2eFXApp.Err()).NotTo(HaveOccurred())
 
-	sqlDB, err := sql.Open("pgx", cfg.Database.DSN())
-	Expect(err).NotTo(HaveOccurred())
-	defer sqlDB.Close()
-	migrator, err := migris.New("pgx",
-		migris.WithDB(sqlDB),
-		migris.WithMigrationDir("../../db/migrations"),
-	)
-	Expect(err).NotTo(HaveOccurred())
-	Expect(migrator.UpContext(e2eCtx)).NotTo(HaveOccurred())
-
 	startCtx, cancel := context.WithTimeout(e2eCtx, 20*time.Second)
 	defer cancel()
 	Expect(e2eFXApp.Start(startCtx)).NotTo(HaveOccurred())
@@ -184,10 +149,10 @@ var _ = AfterSuite(func() {
 		defer cancel()
 		_ = e2eFXApp.Stop(stopCtx)
 	}
+	if e2eDBContainer != nil {
+		_ = e2eDBContainer.Close(context.Background())
+	}
 	if e2eRedisC != nil {
 		_ = testcontainers.TerminateContainer(e2eRedisC)
-	}
-	if e2ePG != nil {
-		_ = testcontainers.TerminateContainer(e2ePG)
 	}
 })

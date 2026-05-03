@@ -2,17 +2,15 @@ package passwordresettoken_test
 
 import (
 	"context"
-	"database/sql"
 	"testing"
 	"time"
 
-	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/akfaiz/go-starter-kit/internal/domain"
 	"github.com/akfaiz/go-starter-kit/internal/repository/passwordresettoken"
-	"github.com/akfaiz/go-starter-kit/test/mocks"
+	"github.com/akfaiz/go-starter-kit/internal/repository/user"
+	"github.com/akfaiz/go-starter-kit/test"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"github.com/uptrace/bun"
 )
 
 func TestPasswordResetTokenRepository(t *testing.T) {
@@ -20,24 +18,45 @@ func TestPasswordResetTokenRepository(t *testing.T) {
 	RunSpecs(t, "Password Reset Token Repository Suite")
 }
 
-var _ = Describe("Password Reset Token Repository", Label("unit", "repository"), func() {
-	var (
-		db   *bun.DB
-		mock sqlmock.Sqlmock
-		r    domain.PasswordResetTokenRepository
-		ctx  context.Context
-	)
+var (
+	dbContainer *test.DBContainer
+	r           domain.PasswordResetTokenRepository
+	userRepo    domain.UserRepository
+	ctx         context.Context
+	testUserID  int64
+)
 
+var _ = BeforeSuite(func() {
+	ctx = context.Background()
+	dbContainer = test.NewDBContainer(ctx, GinkgoT())
+	Expect(dbContainer).NotTo(BeNil())
+
+	r = passwordresettoken.NewRepository(dbContainer.DB)
+	userRepo = user.NewRepository(dbContainer.DB)
+})
+
+var _ = AfterSuite(func() {
+	if dbContainer != nil {
+		err := dbContainer.Close(ctx)
+		Expect(err).NotTo(HaveOccurred())
+	}
+})
+
+var _ = Describe("Password Reset Token Repository", Label("unit", "repository", "integration"), func() {
 	BeforeEach(func() {
-		var cleanup func()
-		db, mock, cleanup = mocks.NewMockDB(GinkgoT())
+		// Truncate all tables to ensure clean state for each test
+		err := dbContainer.TruncateAll(ctx)
+		Expect(err).NotTo(HaveOccurred())
 
-		DeferCleanup(func() {
-			cleanup()
-		})
-
-		r = passwordresettoken.NewRepository(db)
-		ctx = context.Background()
+		// Recreate test user for foreign key references
+		testUser := &domain.User{
+			Name:     "Test User",
+			Email:    "test@example.com",
+			Password: "hashed-password",
+		}
+		err = userRepo.Create(ctx, testUser)
+		Expect(err).NotTo(HaveOccurred())
+		testUserID = testUser.ID
 	})
 
 	Describe("Create", func() {
@@ -48,14 +67,10 @@ var _ = Describe("Password Reset Token Repository", Label("unit", "repository"),
 
 		When("successful", func() {
 			BeforeEach(func() {
-				now := time.Now()
-				mock.ExpectQuery(`INSERT INTO "password_reset_tokens" AS "password_reset_token".*ON CONFLICT.*RETURNING`).
-					WillReturnRows(sqlmock.NewRows([]string{"id", "created_at"}).AddRow(1, now))
-
 				token = &domain.PasswordResetToken{
-					UserID:    1,
+					UserID:    testUserID,
 					Token:     "test-token-123",
-					ExpiresAt: now.Add(1 * time.Hour),
+					ExpiresAt: time.Now().Add(1 * time.Hour),
 				}
 			})
 
@@ -68,28 +83,32 @@ var _ = Describe("Password Reset Token Repository", Label("unit", "repository"),
 			})
 
 			It("should populate the token ID", func() {
-				Expect(token.ID).To(Equal(int64(1)))
+				Expect(token.ID).NotTo(Equal(int64(0)))
 			})
 
 			It("should populate the created_at timestamp", func() {
 				Expect(token.CreatedAt).NotTo(BeZero())
 			})
-
-			It("should verify all expectations were met", func() {
-				Expect(mock.ExpectationsWereMet()).To(BeNil())
-			})
 		})
 
 		When("updating conflicting token", func() {
-			BeforeEach(func() {
-				now := time.Now()
-				mock.ExpectQuery(`INSERT INTO "password_reset_tokens" AS "password_reset_token".*ON CONFLICT.*RETURNING`).
-					WillReturnRows(sqlmock.NewRows([]string{"id", "created_at"}).AddRow(1, now))
+			var firstToken *domain.PasswordResetToken
 
+			BeforeEach(func() {
+				// Create first token for same user
+				firstToken = &domain.PasswordResetToken{
+					UserID:    testUserID,
+					Token:     "old-token-123",
+					ExpiresAt: time.Now().Add(1 * time.Hour),
+				}
+				err := r.Create(ctx, firstToken)
+				Expect(err).NotTo(HaveOccurred())
+
+				// Create new token with same user (ON CONFLICT should update)
 				token = &domain.PasswordResetToken{
-					UserID:    1,
+					UserID:    testUserID,
 					Token:     "new-token-456",
-					ExpiresAt: now.Add(1 * time.Hour),
+					ExpiresAt: time.Now().Add(2 * time.Hour),
 				}
 			})
 
@@ -99,27 +118,6 @@ var _ = Describe("Password Reset Token Repository", Label("unit", "repository"),
 
 			It("should succeed", func() {
 				Expect(err).To(BeNil())
-			})
-		})
-
-		When("database error occurs", func() {
-			BeforeEach(func() {
-				mock.ExpectQuery(`INSERT INTO "password_reset_tokens" AS "password_reset_token".*ON CONFLICT.*RETURNING`).
-					WillReturnError(sql.ErrConnDone)
-
-				token = &domain.PasswordResetToken{
-					UserID:    1,
-					Token:     "test-token",
-					ExpiresAt: time.Now().Add(1 * time.Hour),
-				}
-			})
-
-			JustBeforeEach(func() {
-				err = r.Create(ctx, token)
-			})
-
-			It("should return error", func() {
-				Expect(err).NotTo(BeNil())
 			})
 		})
 	})
@@ -132,7 +130,7 @@ var _ = Describe("Password Reset Token Repository", Label("unit", "repository"),
 		)
 
 		BeforeEach(func() {
-			userID = 1
+			userID = testUserID
 		})
 
 		JustBeforeEach(func() {
@@ -140,13 +138,16 @@ var _ = Describe("Password Reset Token Repository", Label("unit", "repository"),
 		})
 
 		When("token exists", func() {
-			BeforeEach(func() {
-				now := time.Now()
-				expiresAt := now.Add(1 * time.Hour)
+			var createdToken *domain.PasswordResetToken
 
-				mock.ExpectQuery(`SELECT "password_reset_token"."id", "password_reset_token"."user_id", "password_reset_token"."token", "password_reset_token"."expires_at", "password_reset_token"."created_at" FROM "password_reset_tokens"`).
-					WillReturnRows(sqlmock.NewRows([]string{"id", "user_id", "token", "expires_at", "created_at"}).
-						AddRow(1, int64(1), "test-token-123", expiresAt, now))
+			BeforeEach(func() {
+				createdToken = &domain.PasswordResetToken{
+					UserID:    userID,
+					Token:     "test-token-123",
+					ExpiresAt: time.Now().Add(1 * time.Hour),
+				}
+				err := r.Create(ctx, createdToken)
+				Expect(err).NotTo(HaveOccurred())
 			})
 
 			It("should return the token", func() {
@@ -155,11 +156,11 @@ var _ = Describe("Password Reset Token Repository", Label("unit", "repository"),
 			})
 
 			It("should have correct ID", func() {
-				Expect(token.ID).To(Equal(int64(1)))
+				Expect(token.ID).NotTo(Equal(int64(0)))
 			})
 
 			It("should have correct user ID", func() {
-				Expect(token.UserID).To(Equal(int64(1)))
+				Expect(token.UserID).To(Equal(userID))
 			})
 
 			It("should have correct token value", func() {
@@ -169,28 +170,20 @@ var _ = Describe("Password Reset Token Repository", Label("unit", "repository"),
 
 		When("token not found", func() {
 			BeforeEach(func() {
-				userID = 99
-				mock.ExpectQuery(`SELECT "password_reset_token"."id", "password_reset_token"."user_id", "password_reset_token"."token", "password_reset_token"."expires_at", "password_reset_token"."created_at" FROM "password_reset_tokens"`).
-					WillReturnError(sql.ErrNoRows)
+				// Create a different user so we have tokens but not for our test user
+				otherUser := &domain.User{
+					Name:     "Other User",
+					Email:    "other@example.com",
+					Password: "hashed-password",
+				}
+				err := userRepo.Create(ctx, otherUser)
+				Expect(err).NotTo(HaveOccurred())
+
+				userID = 99999 // non-existent user
 			})
 
 			It("should return resource not found error", func() {
 				Expect(err).To(Equal(domain.ErrResourceNotFound))
-			})
-
-			It("should return nil token", func() {
-				Expect(token).To(BeNil())
-			})
-		})
-
-		When("database error occurs", func() {
-			BeforeEach(func() {
-				mock.ExpectQuery(`SELECT "password_reset_token"."id", "password_reset_token"."user_id", "password_reset_token"."token", "password_reset_token"."expires_at", "password_reset_token"."created_at" FROM "password_reset_tokens"`).
-					WillReturnError(sql.ErrConnDone)
-			})
-
-			It("should return error", func() {
-				Expect(err).NotTo(BeNil())
 			})
 
 			It("should return nil token", func() {
@@ -211,25 +204,31 @@ var _ = Describe("Password Reset Token Repository", Label("unit", "repository"),
 
 		When("successful", func() {
 			BeforeEach(func() {
-				userID = 1
-				mock.ExpectExec(`DELETE FROM "password_reset_tokens" AS "password_reset_token" WHERE \(user_id = 1\)`).
-					WillReturnResult(sqlmock.NewResult(0, 1))
+				// Create a token first
+				token := &domain.PasswordResetToken{
+					UserID:    testUserID,
+					Token:     "test-token",
+					ExpiresAt: time.Now().Add(1 * time.Hour),
+				}
+				err := r.Create(ctx, token)
+				Expect(err).NotTo(HaveOccurred())
+				userID = testUserID
 			})
 
 			It("should succeed", func() {
 				Expect(err).To(BeNil())
 			})
 
-			It("should verify all expectations were met", func() {
-				Expect(mock.ExpectationsWereMet()).To(BeNil())
+			It("should delete the token", func() {
+				token, err := r.FindOne(ctx, userID)
+				Expect(err).To(Equal(domain.ErrResourceNotFound))
+				Expect(token).To(BeNil())
 			})
 		})
 
 		When("no rows affected", func() {
 			BeforeEach(func() {
-				userID = 99
-				mock.ExpectExec(`DELETE FROM "password_reset_tokens" AS "password_reset_token" WHERE \(user_id = 99\)`).
-					WillReturnResult(sqlmock.NewResult(0, 0))
+				userID = 99999
 			})
 
 			It("should still succeed", func() {

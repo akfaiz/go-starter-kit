@@ -10,7 +10,6 @@ import (
 	"github.com/akfaiz/go-starter-kit/internal/model"
 	"github.com/akfaiz/go-starter-kit/internal/telemetry"
 	"github.com/uptrace/bun"
-	"github.com/uptrace/bun/driver/pgdriver"
 	"go.opentelemetry.io/otel"
 )
 
@@ -31,11 +30,8 @@ func (r *repository) Create(ctx context.Context, user *domain.User) error {
 	m := model.NewUserFromDomain(user)
 	_, err := r.db.NewInsert().Model(m).Exec(ctx)
 	if err != nil {
-		var pgError pgdriver.Error
-		if errors.As(err, &pgError) {
-			if pgError.IntegrityViolation() && strings.Contains(pgError.Error(), "uk_users_email") {
-				return domain.ErrEmailAlreadyExists
-			}
+		if strings.Contains(err.Error(), "users_email_unique") {
+			return domain.ErrEmailAlreadyExists
 		}
 		return err
 	}
@@ -143,11 +139,8 @@ func (r *repository) Update(ctx context.Context, id int64, data *domain.UserUpda
 	query = model.ApplyUserUpdate(query, data)
 	res, err := query.Exec(ctx)
 	if err != nil {
-		var pgError pgdriver.Error
-		if errors.As(err, &pgError) {
-			if pgError.IntegrityViolation() && strings.Contains(pgError.Error(), "uk_users_email") {
-				return domain.ErrEmailAlreadyExists
-			}
+		if strings.Contains(err.Error(), "users_email_unique") {
+			return domain.ErrEmailAlreadyExists
 		}
 		return err
 	}

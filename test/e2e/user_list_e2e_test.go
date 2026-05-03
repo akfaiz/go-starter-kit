@@ -9,8 +9,7 @@ import (
 
 var _ = Describe("User List E2E", Label("e2e"), func() {
 	BeforeEach(func() {
-		_, err := e2eDB.ExecContext(e2eCtx, "TRUNCATE TABLE password_reset_tokens, users RESTART IDENTITY CASCADE")
-		Expect(err).NotTo(HaveOccurred())
+		Expect(e2eDBContainer.TruncateAll(e2eCtx)).NotTo(HaveOccurred())
 		Expect(e2eRDB.FlushDB(e2eCtx).Err()).NotTo(HaveOccurred())
 	})
 
