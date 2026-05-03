@@ -30,6 +30,15 @@ Server: `http://localhost:8080`
 OpenAPI docs: `http://localhost:8080/docs`
 Jaeger UI: `http://localhost:16686`
 
+## Key Features
+
+- **Automatic Request Validation**: Leverage a custom binder that automatically validates request DTOs during `c.Bind`, reducing handler boilerplate.
+- **RFC 7807 Error Responses**: Standardized, machine-readable error responses using the `application/problem+json` content type.
+- **Localized Validation**: Built-in support for multiple locales (English and Indonesian) in validation error messages.
+- **Dependency Injection**: Robust and modular component management using **Uber FX**.
+- **Observability**: Distributed tracing integrated at every level (HTTP, Database, Redis) using **OpenTelemetry**.
+- **Developer Experience**: Includes a `Makefile` for common tasks, `golangci-lint` configuration, and comprehensive unit/E2E testing setups.
+
 ## Auth Security
 
 - Access and refresh tokens are stored in Redis per user session.

@@ -16,11 +16,11 @@ This project uses **OpenTelemetry (OTel)** for distributed tracing, with **Jaege
   - `Redis`: Traces cache operations.
 
 ## Adding Custom Tracing
-To add a custom span in a service or handler:
+To add a custom span in a service or repository:
 
 ```go
 func (s *service) ComplexOperation(ctx context.Context) error {
-    ctx, span := telemetry.StartSpan(ctx, "service.ComplexOperation")
+    ctx, span := telemetry.StartSpan(ctx, s.tracer)
     defer span.End()
 
     // span.SetAttributes(...)

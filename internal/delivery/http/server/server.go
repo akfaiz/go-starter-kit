@@ -12,10 +12,14 @@ import (
 	echomiddleware "github.com/labstack/echo/v5/middleware"
 )
 
-func New(cfg config.Config, v *validator.Validate) *echo.Echo {
+func New(cfg config.Config) *echo.Echo {
 	e := echo.New()
+
+	v := validator.New()
 	e.Validator = v
+	e.Binder = validator.NewBinder(e.Binder, v)
 	e.HTTPErrorHandler = customHTTPErrorHandler
+
 	e.Pre(echomiddleware.RemoveTrailingSlash())
 	e.Use(echoopentelemetry.NewMiddleware(cfg.Telemetry.ServiceName))
 	e.Use(appmiddleware.Logger(slog.Default()))

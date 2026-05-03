@@ -14,7 +14,7 @@ This project follows a structured layering pattern: `Delivery (HTTP) -> Service 
 - **Role**: Handle HTTP requests, bind/validate DTOs, call service methods, and return response DTOs.
 - **Rules**:
   - Use `dto` package for request/response structures. Add `ToDomain()` methods to DTOs to map to domain entities before calling services.
-  - Inject `*validator.Validate` and use `h.validator.ValidateContext(c.Request().Context(), &req)` for localized validation.
+  - **Automatic Validation**: Use `c.Bind(&req)` to both bind the request and automatically trigger validation.
   - Map Domain Errors to HTTP errors (`problem.AppError` or `validator.ValidationError`).
   - Wrap unexpected errors using `problem.Wrap(err, problem.ErrInternalServer)`.
   - Avoid business logic; delegate to the Service layer.

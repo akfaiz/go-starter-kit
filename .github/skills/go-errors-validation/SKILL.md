@@ -20,26 +20,17 @@ Always use `pkg/problem` to return errors from handlers or map domain errors in 
 - `problem.ErrInternalServer`: 500 Internal Server Error
 
 ## Localized Input Validation (`pkg/validator`)
-Use `pkg/validator` in handlers to validate request DTOs with context-aware localization.
+The project uses a custom binder that automatically triggers validation after binding. This ensures all request DTOs are validated with context-aware localization before they reach the handler logic.
 
 ### Handler Implementation
-Inject the validator into your handler and use `ValidateWithContext` to respect the user's locale (provided by `ctxi18n` middleware).
+Simply use `c.Bind` to handle both binding and validation. If validation fails, the global error handler will catch the error and return a standardized RFC 7807 response.
 
 ```go
-type MyHandler struct {
-    validator *validator.Validate
-    // ...
-}
-
 func (h *MyHandler) Create(c *echo.Context) error {
     var req dto.CreateRequest
+    // Bind automatically triggers validation
     if err := c.Bind(&req); err != nil {
-        return err
-    }
-    
-    // Use context-aware validation for localized error messages (EN, ID supported)
-    if err := h.validator.ValidateContext(c.Request().Context(), &req); err != nil {
-        return err // Returns *validator.ValidationError mapped to RFC 7807
+        return err // Returns *validator.ValidationError or Bind error
     }
     // ...
 }

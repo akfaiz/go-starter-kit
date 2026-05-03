@@ -49,7 +49,15 @@ func customHTTPErrorHandler(c *echo.Context, err error) {
 	var statusCoder echo.HTTPStatusCoder
 	if errors.As(err, &statusCoder) {
 		code = statusCoder.StatusCode()
-		appError = problem.New(http.StatusText(code), "about:blank", code)
+		message := http.StatusText(code)
+
+		// Extract more detailed message from echo.HTTPError if available
+		var he *echo.HTTPError
+		if errors.As(err, &he) {
+			message = he.Message
+		}
+
+		appError = problem.New(message, "about:blank", code)
 	} else {
 		appError = problem.ErrInternalServer()
 	}

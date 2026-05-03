@@ -10,7 +10,9 @@ import (
 
 func newJSONContext(method, path, payload string) (*echo.Context, *httptest.ResponseRecorder) {
 	e := echo.New()
-	e.Validator = appvalidator.New()
+	v := appvalidator.New()
+	e.Validator = v
+	e.Binder = appvalidator.NewBinder(e.Binder, v)
 	req := httptest.NewRequest(method, path, strings.NewReader(payload))
 	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
 	rec := httptest.NewRecorder()

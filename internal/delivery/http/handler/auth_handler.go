@@ -16,23 +16,18 @@ import (
 type AuthHandler struct {
 	authService domain.AuthService
 	authGuard   security.AuthGuard
-	validator   *validator.Validate
 }
 
 func NewAuthHandler(
 	authService domain.AuthService,
 	authGuard security.AuthGuard,
-	validator *validator.Validate,
 ) *AuthHandler {
-	return &AuthHandler{authService: authService, authGuard: authGuard, validator: validator}
+	return &AuthHandler{authService: authService, authGuard: authGuard}
 }
 
 func (h *AuthHandler) Login(c *echo.Context) error {
 	var req dto.LoginRequest
 	if err := c.Bind(&req); err != nil {
-		return problem.Wrap(err, problem.ErrBadRequest)
-	}
-	if err := h.validator.ValidateContext(c.Request().Context(), &req); err != nil {
 		return err
 	}
 	check, err := h.authGuard.CheckLogin(c.Request().Context(), c.RealIP(), req.Email)
@@ -85,9 +80,6 @@ func (h *AuthHandler) handleLoginFailure(c *echo.Context, email string, loginErr
 func (h *AuthHandler) Register(c *echo.Context) error {
 	var req dto.RegisterRequest
 	if err := c.Bind(&req); err != nil {
-		return problem.Wrap(err, problem.ErrBadRequest)
-	}
-	if err := h.validator.ValidateContext(c.Request().Context(), &req); err != nil {
 		return err
 	}
 
@@ -106,9 +98,6 @@ func (h *AuthHandler) Register(c *echo.Context) error {
 func (h *AuthHandler) RefreshToken(c *echo.Context) error {
 	var req dto.RefreshTokenRequest
 	if err := c.Bind(&req); err != nil {
-		return problem.Wrap(err, problem.ErrBadRequest)
-	}
-	if err := h.validator.ValidateContext(c.Request().Context(), &req); err != nil {
 		return err
 	}
 	check, err := h.authGuard.CheckRefresh(c.Request().Context(), c.RealIP())
@@ -134,9 +123,6 @@ func (h *AuthHandler) RefreshToken(c *echo.Context) error {
 func (h *AuthHandler) SendForgotPasswordOTP(c *echo.Context) error {
 	var req dto.SendForgotPasswordOTPRequest
 	if err := c.Bind(&req); err != nil {
-		return problem.Wrap(err, problem.ErrBadRequest)
-	}
-	if err := h.validator.ValidateContext(c.Request().Context(), &req); err != nil {
 		return err
 	}
 
@@ -154,9 +140,6 @@ func (h *AuthHandler) SendForgotPasswordOTP(c *echo.Context) error {
 func (h *AuthHandler) VerifyForgotPasswordOTP(c *echo.Context) error {
 	var req dto.VerifyForgotPasswordOTPRequest
 	if err := c.Bind(&req); err != nil {
-		return problem.Wrap(err, problem.ErrBadRequest)
-	}
-	if err := h.validator.ValidateContext(c.Request().Context(), &req); err != nil {
 		return err
 	}
 
@@ -171,9 +154,6 @@ func (h *AuthHandler) VerifyForgotPasswordOTP(c *echo.Context) error {
 func (h *AuthHandler) ResetPasswordWithOTP(c *echo.Context) error {
 	var req dto.ResetPasswordWithOTPRequest
 	if err := c.Bind(&req); err != nil {
-		return problem.Wrap(err, problem.ErrBadRequest)
-	}
-	if err := h.validator.ValidateContext(c.Request().Context(), &req); err != nil {
 		return err
 	}
 

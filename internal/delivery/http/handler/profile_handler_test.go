@@ -9,7 +9,6 @@ import (
 	"github.com/akfaiz/go-starter-kit/internal/delivery/http/handler"
 	"github.com/akfaiz/go-starter-kit/internal/domain"
 	"github.com/akfaiz/go-starter-kit/pkg/problem"
-	"github.com/akfaiz/go-starter-kit/pkg/validator"
 	"github.com/akfaiz/go-starter-kit/test/mocks"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -26,7 +25,7 @@ var _ = Describe("ProfileHandler", Label("unit", "handler"), func() {
 	BeforeEach(func() {
 		ctrl = gomock.NewController(GinkgoT())
 		userService = mocks.NewMockUserService(ctrl)
-		h = handler.NewProfileHandler(userService, validator.New())
+		h = handler.NewProfileHandler(userService)
 	})
 
 	AfterEach(func() {
