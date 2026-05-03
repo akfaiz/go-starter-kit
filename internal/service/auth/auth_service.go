@@ -17,32 +17,32 @@ import (
 )
 
 type service struct {
-	cfg            config.Config
-	userRepo       domain.UserRepository
-	userTokenRepo  domain.UserTokenRepository
-	sessionRepo    domain.SessionRepository
-	passwordHasher domain.PasswordHasher
-	jwtManager     domain.JWTManager
-	mailer         domain.Mailer
+	cfg                    config.Config
+	userRepo               domain.UserRepository
+	passwordResetTokenRepo domain.PasswordResetTokenRepository
+	sessionRepo            domain.SessionRepository
+	passwordHasher         domain.PasswordHasher
+	jwtManager             domain.JWTManager
+	mailer                 domain.Mailer
 }
 
 func NewService(
 	cfg config.Config,
 	userRepo domain.UserRepository,
-	userTokenRepo domain.UserTokenRepository,
+	passwordResetTokenRepo domain.PasswordResetTokenRepository,
 	sessionRepo domain.SessionRepository,
 	passwordHasher domain.PasswordHasher,
 	jwtManager domain.JWTManager,
 	mailer domain.Mailer,
 ) domain.AuthService {
 	return &service{
-		cfg:            cfg,
-		userRepo:       userRepo,
-		userTokenRepo:  userTokenRepo,
-		sessionRepo:    sessionRepo,
-		passwordHasher: passwordHasher,
-		jwtManager:     jwtManager,
-		mailer:         mailer,
+		cfg:                    cfg,
+		userRepo:               userRepo,
+		passwordResetTokenRepo: passwordResetTokenRepo,
+		sessionRepo:            sessionRepo,
+		passwordHasher:         passwordHasher,
+		jwtManager:             jwtManager,
+		mailer:                 mailer,
 	}
 }
 
@@ -134,13 +134,12 @@ func (s *service) SendForgotPasswordOTP(ctx context.Context, email string) error
 		return err
 	}
 	expiresAt := time.Now().Add(s.cfg.Auth.ResetPasswordExpiration)
-	token := &domain.UserToken{
+	token := &domain.PasswordResetToken{
 		UserID:    user.ID,
 		Token:     hashedOTP,
 		ExpiresAt: expiresAt,
-		TokenType: domain.TokenTypeForgotPasswordOTP,
 	}
-	if err := s.userTokenRepo.Create(ctx, token); err != nil {
+	if err := s.passwordResetTokenRepo.Create(ctx, token); err != nil {
 		return err
 	}
 
@@ -168,7 +167,7 @@ func (s *service) ResetPasswordWithOTP(ctx context.Context, email, otp, newPassw
 	if err := s.userRepo.Update(ctx, user.ID, &domain.UserUpdate{Password: omit.From(hashedPassword)}); err != nil {
 		return err
 	}
-	_ = s.userTokenRepo.Delete(ctx, user.ID, domain.TokenTypeForgotPasswordOTP)
+	_ = s.passwordResetTokenRepo.Delete(ctx, user.ID)
 	_ = s.sessionRepo.DeleteSession(ctx, user.ID)
 	return nil
 }
@@ -200,7 +199,7 @@ func (s *service) validateForgotPasswordOTP(ctx context.Context, email, otp stri
 		return nil, err
 	}
 
-	stored, err := s.userTokenRepo.FindOne(ctx, user.ID, domain.TokenTypeForgotPasswordOTP)
+	stored, err := s.passwordResetTokenRepo.FindOne(ctx, user.ID)
 	if err != nil {
 		if errors.Is(err, domain.ErrResourceNotFound) {
 			return nil, errdefs.ErrBadRequest(i18n.T(ctx, "passwords.token"))

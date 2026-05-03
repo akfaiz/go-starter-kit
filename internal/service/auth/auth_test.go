@@ -20,21 +20,21 @@ import (
 
 var _ = Describe("Auth", Label("unit", "usecase"), func() {
 	var (
-		userRepoMock      *mocks.MockUserRepository
-		userTokenRepoMock *mocks.MockUserTokenRepository
-		sessionRepoMock   *mocks.MockSessionRepository
-		hasherMock        *mocks.MockPasswordHasher
-		jwtManagerMock    *mocks.MockJWTManager
-		mailerMock        *mocks.MockMailer
-		cfg               config.Config
-		svc               domain.AuthService
+		userRepoMock               *mocks.MockUserRepository
+		passwordResetTokenRepoMock *mocks.MockPasswordResetTokenRepository
+		sessionRepoMock            *mocks.MockSessionRepository
+		hasherMock                 *mocks.MockPasswordHasher
+		jwtManagerMock             *mocks.MockJWTManager
+		mailerMock                 *mocks.MockMailer
+		cfg                        config.Config
+		svc                        domain.AuthService
 
 		ctx context.Context
 	)
 	BeforeEach(func() {
 		ctrl := gomock.NewController(GinkgoT())
 		userRepoMock = mocks.NewMockUserRepository(ctrl)
-		userTokenRepoMock = mocks.NewMockUserTokenRepository(ctrl)
+		passwordResetTokenRepoMock = mocks.NewMockPasswordResetTokenRepository(ctrl)
 		sessionRepoMock = mocks.NewMockSessionRepository(ctrl)
 		hasherMock = mocks.NewMockPasswordHasher(ctrl)
 		jwtManagerMock = mocks.NewMockJWTManager(ctrl)
@@ -50,7 +50,7 @@ var _ = Describe("Auth", Label("unit", "usecase"), func() {
 		svc = auth.NewService(
 			cfg,
 			userRepoMock,
-			userTokenRepoMock,
+			passwordResetTokenRepoMock,
 			sessionRepoMock,
 			hasherMock,
 			jwtManagerMock,

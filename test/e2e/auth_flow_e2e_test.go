@@ -9,7 +9,7 @@ import (
 
 var _ = Describe("Auth Flow E2E", Label("e2e"), func() {
 	BeforeEach(func() {
-		_, err := e2eDB.ExecContext(e2eCtx, "TRUNCATE TABLE user_tokens, users RESTART IDENTITY CASCADE")
+		_, err := e2eDB.ExecContext(e2eCtx, "TRUNCATE TABLE password_reset_tokens, users RESTART IDENTITY CASCADE")
 		Expect(err).NotTo(HaveOccurred())
 		Expect(e2eRDB.FlushDB(e2eCtx).Err()).NotTo(HaveOccurred())
 	})
