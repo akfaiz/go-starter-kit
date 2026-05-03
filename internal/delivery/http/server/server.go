@@ -22,6 +22,7 @@ func New(cfg config.Config) *echo.Echo {
 
 	e.Pre(echomiddleware.RemoveTrailingSlash())
 	e.Use(echoopentelemetry.NewMiddleware(cfg.Telemetry.ServiceName))
+	e.Use(echomiddleware.Secure())
 	e.Use(appmiddleware.Logger(slog.Default()))
 	e.Use(echomiddleware.Recover())
 	e.Use(echomiddleware.RequestID())

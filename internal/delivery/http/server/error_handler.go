@@ -1,6 +1,7 @@
 package server
 
 import (
+	"log/slog"
 	"net/http"
 
 	"github.com/akfaiz/go-starter-kit/pkg/problem"
@@ -28,7 +29,7 @@ func CustomHTTPErrorHandler(c *echo.Context, err error) {
 	var appError *problem.AppError
 	if errors.As(err, &appError) {
 		if jsonErr := c.JSON(appError.Status, appError.WithInstance(instance)); jsonErr != nil {
-			c.Logger().Error("write app error response failed", "error", jsonErr)
+			slog.ErrorContext(c.Request().Context(), "write app error response failed", "error", jsonErr)
 		}
 		return
 	}
@@ -40,7 +41,7 @@ func CustomHTTPErrorHandler(c *echo.Context, err error) {
 			WithCause(err).
 			WithInstance(instance)
 		if jsonErr := c.JSON(appError.Status, appError); jsonErr != nil {
-			c.Logger().Error("write validation error response failed", "error", jsonErr)
+			slog.ErrorContext(c.Request().Context(), "write validation error response failed", "error", jsonErr)
 		}
 		return
 	}
@@ -61,7 +62,12 @@ func CustomHTTPErrorHandler(c *echo.Context, err error) {
 	} else {
 		appError = problem.ErrInternalServer()
 	}
+
+	if code >= 500 {
+		slog.ErrorContext(c.Request().Context(), "http handler error", "error", err, "code", code)
+	}
+
 	if jsonErr := c.JSON(code, appError.WithInstance(instance)); jsonErr != nil {
-		c.Logger().Error("write generic error response failed", "error", jsonErr)
+		slog.ErrorContext(c.Request().Context(), "write generic error response failed", "error", jsonErr)
 	}
 }

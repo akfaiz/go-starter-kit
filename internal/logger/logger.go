@@ -1,11 +1,13 @@
 package logger
 
 import (
+	"context"
 	"log/slog"
 	"os"
 	"strings"
 
 	"github.com/akfaiz/go-starter-kit/internal/config"
+	"go.opentelemetry.io/otel/trace"
 )
 
 func Init(cfg config.App) {
@@ -31,6 +33,21 @@ func Init(cfg config.App) {
 	} else {
 		handler = slog.NewTextHandler(os.Stdout, handlerOpts)
 	}
-	logger := slog.New(handler)
+	logger := slog.New(&customHandler{handler})
 	slog.SetDefault(logger)
+}
+
+type customHandler struct {
+	slog.Handler
+}
+
+func (h *customHandler) Handle(ctx context.Context, record slog.Record) error {
+	span := trace.SpanFromContext(ctx)
+	if span.IsRecording() && span.SpanContext().IsValid() {
+		spanContext := span.SpanContext()
+		record.Add(slog.String("span_id", spanContext.SpanID().String()))
+		record.Add(slog.String("trace_id", spanContext.TraceID().String()))
+	}
+
+	return h.Handler.Handle(ctx, record)
 }

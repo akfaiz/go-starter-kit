@@ -7,10 +7,12 @@ import (
 
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/akfaiz/go-starter-kit/internal/delivery/http/handler"
+	"github.com/alicebob/miniredis/v2"
 	"github.com/gavv/httpexpect/v2"
 	"github.com/labstack/echo/v5"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"github.com/redis/go-redis/v9"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
@@ -20,6 +22,8 @@ var _ = Describe("HealthCheckHandler", Label("unit", "handler"), func() {
 		h      *handler.HealthCheckHandler
 		e      *echo.Echo
 		expect *httpexpect.Expect
+		mr     *miniredis.Miniredis
+		rdb    *redis.Client
 	)
 
 	newDB := func() (*gorm.DB, sqlmock.Sqlmock, *sql.DB) {
@@ -39,16 +43,27 @@ var _ = Describe("HealthCheckHandler", Label("unit", "handler"), func() {
 	BeforeEach(func() {
 		e = setupEcho()
 		expect = newExpect(e)
+
+		var err error
+		mr, err = miniredis.Run()
+		Expect(err).NotTo(HaveOccurred())
+		rdb = redis.NewClient(&redis.Options{
+			Addr: mr.Addr(),
+		})
 	})
 
-	It("returns ok when database ping succeeds", func() {
+	AfterEach(func() {
+		mr.Close()
+	})
+
+	It("returns ok when database and redis ping succeeds", func() {
 		db, mock, sqldb := newDB()
 		defer func() {
 			_ = sqldb.Close()
 		}()
 
 		mock.ExpectPing()
-		h = handler.NewHealthCheckHandler(db)
+		h = handler.NewHealthCheckHandler(db, rdb)
 		e.GET("/health", h.HealthCheck)
 
 		expect.GET("/health").
@@ -57,7 +72,10 @@ var _ = Describe("HealthCheckHandler", Label("unit", "handler"), func() {
 			JSON().
 			Object().
 			HasValue("status", "ok").
-			HasValue("message", "Application is healthy")
+			HasValue("message", "Application is healthy").
+			Value("checks").Object().
+			HasValue("database", "ok").
+			HasValue("redis", "ok")
 
 		Expect(mock.ExpectationsWereMet()).To(Succeed())
 	})
@@ -69,7 +87,7 @@ var _ = Describe("HealthCheckHandler", Label("unit", "handler"), func() {
 		}()
 
 		mock.ExpectPing().WillReturnError(errors.New("db unreachable"))
-		h = handler.NewHealthCheckHandler(db)
+		h = handler.NewHealthCheckHandler(db, rdb)
 		e.GET("/health", h.HealthCheck)
 
 		expect.GET("/health").
@@ -78,6 +96,28 @@ var _ = Describe("HealthCheckHandler", Label("unit", "handler"), func() {
 			JSON(httpexpect.ContentOpts{MediaType: "application/problem+json"}).
 			Object().
 			HasValue("detail", "Database connection error")
+
+		Expect(mock.ExpectationsWereMet()).To(Succeed())
+	})
+
+	It("returns error payload when redis ping fails", func() {
+		db, mock, sqldb := newDB()
+		defer func() {
+			_ = sqldb.Close()
+		}()
+
+		mock.ExpectPing()
+		mr.Close() // Simulate redis down
+
+		h = handler.NewHealthCheckHandler(db, rdb)
+		e.GET("/health", h.HealthCheck)
+
+		expect.GET("/health").
+			Expect().
+			Status(http.StatusInternalServerError).
+			JSON(httpexpect.ContentOpts{MediaType: "application/problem+json"}).
+			Object().
+			HasValue("detail", "Redis connection error")
 
 		Expect(mock.ExpectationsWereMet()).To(Succeed())
 	})

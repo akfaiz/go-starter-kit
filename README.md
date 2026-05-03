@@ -36,7 +36,9 @@ Jaeger UI: `http://localhost:16686`
 - **RFC 7807 Error Responses**: Standardized, machine-readable error responses using the `application/problem+json` content type.
 - **Localized Validation**: Built-in support for multiple locales (English and Indonesian) in validation error messages.
 - **Dependency Injection**: Robust and modular component management using **Uber FX**.
-- **Observability**: Distributed tracing integrated at every level (HTTP, Database, Redis) using **OpenTelemetry**.
+- **Observability**: Distributed tracing integrated at every level (HTTP, Database, Redis) using **OpenTelemetry**, with trace-to-log correlation in structured logs.
+- **Health Checks**: Comprehensive health check endpoint monitoring both Database and Redis connectivity.
+- **Security**: Pre-configured secure middleware (HSTS, CSP, etc.) and robust RFC 7807 error responses.
 - **Developer Experience**: Includes a `Makefile` for common tasks, `golangci-lint` configuration, and comprehensive unit/E2E testing setups.
 
 ## Architecture & Project Structure

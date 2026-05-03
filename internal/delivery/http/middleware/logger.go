@@ -42,6 +42,7 @@ func Logger(logger *slog.Logger) echo.MiddlewareFunc {
 				slog.String("uri", v.URI),
 				slog.Float64("latency", float64(v.Latency.Microseconds())/1000),
 			}
+
 			if v.Error != nil {
 				errorAttrs := []slog.Attr{
 					slog.String("msg", v.Error.Error()),
