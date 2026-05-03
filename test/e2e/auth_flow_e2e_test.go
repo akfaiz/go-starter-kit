@@ -24,7 +24,7 @@ var _ = Describe("Auth Flow E2E", Label("e2e"), func() {
 	})
 
 	It("registers, logs in, and fetches profile successfully", func() {
-		registerObj := e2eExpect.POST("/api/v1/auth/register").
+		e2eExpect.POST("/api/v1/auth/register").
 			WithJSON(map[string]any{
 				"name":                  "John Doe",
 				"email":                 "john@example.com",
@@ -32,19 +32,19 @@ var _ = Describe("Auth Flow E2E", Label("e2e"), func() {
 				"password_confirmation": "password123",
 			}).
 			Expect().
-			Status(http.StatusCreated).
-			JSON().
-			Object()
+			Status(http.StatusCreated)
 
-		accessToken := registerObj.Value("data").Object().Value("access_token").String().NotEmpty().Raw()
-
-		e2eExpect.POST("/api/v1/auth/login").
+		loginObj := e2eExpect.POST("/api/v1/auth/login").
 			WithJSON(map[string]any{
 				"email":    "john@example.com",
 				"password": "password123",
 			}).
 			Expect().
-			Status(http.StatusOK)
+			Status(http.StatusOK).
+			JSON().
+			Object()
+
+		accessToken := loginObj.Value("data").Object().Value("access_token").String().NotEmpty().Raw()
 
 		profileObj := e2eExpect.GET("/api/v1/profile").
 			WithHeader("Authorization", "Bearer "+accessToken).
