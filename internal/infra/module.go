@@ -1,11 +1,15 @@
 package infra
 
-import "go.uber.org/fx"
+import (
+	"github.com/akfaiz/go-starter-kit/pkg/validator"
+	"go.uber.org/fx"
+)
 
 var Module = fx.Module("provider",
 	fx.Provide(
 		NewDatabase,
 		NewRedisClient,
 		NewSMTPMailer,
+		validator.New,
 	),
 )

@@ -1,0 +1,9 @@
+id:
+  auth:
+    failed: "Kredensial ini tidak cocok dengan data kami."
+    password: "Kata sandi yang diberikan salah."
+  passwords:
+    reset: "Kata sandi Anda telah diatur ulang."
+    sent: "Kami telah mengirimkan email berisi tautan atur ulang kata sandi Anda!"
+    token: "Token atur ulang kata sandi ini tidak valid."
+    user: "Kami tidak dapat menemukan pengguna dengan alamat email tersebut."

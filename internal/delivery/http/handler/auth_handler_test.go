@@ -10,6 +10,7 @@ import (
 	"github.com/akfaiz/go-starter-kit/internal/domain"
 	"github.com/akfaiz/go-starter-kit/internal/security"
 	"github.com/akfaiz/go-starter-kit/pkg/problem"
+	"github.com/akfaiz/go-starter-kit/pkg/validator"
 	"github.com/akfaiz/go-starter-kit/test/mocks"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -28,7 +29,7 @@ var _ = Describe("AuthHandler", Label("unit", "handler"), func() {
 		ctrl = gomock.NewController(GinkgoT())
 		service = mocks.NewMockAuthService(ctrl)
 		guard = mocks.NewMockAuthGuard(ctrl)
-		h = handler.NewAuthHandler(service, guard)
+		h = handler.NewAuthHandler(service, guard, validator.New())
 	})
 
 	AfterEach(func() {

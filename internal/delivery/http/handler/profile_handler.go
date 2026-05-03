@@ -5,15 +5,17 @@ import (
 	"github.com/akfaiz/go-starter-kit/internal/delivery/http/middleware/auth"
 	"github.com/akfaiz/go-starter-kit/internal/domain"
 	"github.com/akfaiz/go-starter-kit/pkg/problem"
+	"github.com/akfaiz/go-starter-kit/pkg/validator"
 	"github.com/labstack/echo/v5"
 )
 
 type ProfileHandler struct {
 	userService domain.UserService
+	validator   *validator.Validate
 }
 
-func NewProfileHandler(userService domain.UserService) *ProfileHandler {
-	return &ProfileHandler{userService: userService}
+func NewProfileHandler(userService domain.UserService, validator *validator.Validate) *ProfileHandler {
+	return &ProfileHandler{userService: userService, validator: validator}
 }
 
 func (h *ProfileHandler) GetProfile(c *echo.Context) error {
@@ -36,7 +38,7 @@ func (h *ProfileHandler) UpdateProfile(c *echo.Context) error {
 	if err := c.Bind(&req); err != nil {
 		return err
 	}
-	if err := c.Validate(&req); err != nil {
+	if err := h.validator.ValidateContext(c.Request().Context(), &req); err != nil {
 		return err
 	}
 
@@ -70,7 +72,7 @@ func (h *ProfileHandler) ChangePassword(c *echo.Context) error {
 	if err := c.Bind(&req); err != nil {
 		return err
 	}
-	if err := c.Validate(&req); err != nil {
+	if err := h.validator.ValidateContext(c.Request().Context(), &req); err != nil {
 		return err
 	}
 

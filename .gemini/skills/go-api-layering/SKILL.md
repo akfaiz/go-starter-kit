@@ -14,6 +14,7 @@ This project follows a structured layering pattern: `Delivery (HTTP) -> Service 
 - **Role**: Handle HTTP requests, bind/validate DTOs, call service methods, and return response DTOs.
 - **Rules**:
   - Use `dto` package for request/response structures.
+  - Inject `*validator.Validate` and use `h.validator.ValidateContext(c.Request().Context(), &req)` for localized validation.
   - Return `error` from handlers; Echo middleware handles mapping to RFC 7807.
   - Avoid business logic; delegate to the Service layer.
 

@@ -1,12 +1,23 @@
 package validator_test
 
 import (
+	"context"
 	"testing"
+	"testing/fstest"
 
 	"github.com/akfaiz/go-starter-kit/pkg/validator"
+	"github.com/invopop/ctxi18n"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+func init() {
+	fs := fstest.MapFS{
+		"en.yml": &fstest.MapFile{Data: []byte("en: {}")},
+		"id.yml": &fstest.MapFile{Data: []byte("id: {}")},
+	}
+	_ = ctxi18n.LoadWithDefault(fs, "en")
+}
 
 type registerRequest struct {
 	Email                string `json:"email"                 validate:"required,email"            label:"Email"`
@@ -143,4 +154,21 @@ func TestValidate_ArrayStructPathUsesJSONKeysWithIndex(t *testing.T) {
 
 	assert.Equal(t, "phones[0].number", vErr.First().Field)
 	assert.Equal(t, "Number is a required field", vErr.First().Message)
+}
+
+func TestValidate_IndonesianLocale(t *testing.T) {
+	v := validator.New()
+	req := &registerRequest{
+		Email: "invalid-email",
+	}
+
+	ctx, err := ctxi18n.WithLocale(context.Background(), "id")
+	require.NoError(t, err)
+	require.NotNil(t, ctx)
+	err = v.ValidateContext(ctx, req)
+	require.Error(t, err)
+
+	var vErr *validator.ValidationError
+	require.ErrorAs(t, err, &vErr)
+	assert.Equal(t, "Email harus berupa alamat email yang valid", vErr.First().Message)
 }

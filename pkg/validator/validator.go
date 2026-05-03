@@ -1,19 +1,23 @@
 package validator
 
 import (
+	"context"
 	"errors"
 	"reflect"
 	"strings"
 
 	"github.com/go-playground/locales/en"
+	"github.com/go-playground/locales/id"
 	ut "github.com/go-playground/universal-translator"
 	govalidator "github.com/go-playground/validator/v10"
 	enTranslations "github.com/go-playground/validator/v10/translations/en"
+	idTranslations "github.com/go-playground/validator/v10/translations/id"
+	"github.com/invopop/ctxi18n"
 )
 
 type Validate struct {
 	validate *govalidator.Validate
-	trans    ut.Translator
+	uni      *ut.UniversalTranslator
 }
 
 func New() *Validate {
@@ -32,15 +36,24 @@ func New() *Validate {
 	})
 
 	english := en.New()
-	uni := ut.New(english, english)
-	trans, _ := uni.GetTranslator("en")
-	_ = enTranslations.RegisterDefaultTranslations(v, trans)
+	indonesian := id.New()
+	uni := ut.New(english, english, indonesian)
 
-	return &Validate{validate: v, trans: trans}
+	enTrans, _ := uni.GetTranslator("en")
+	_ = enTranslations.RegisterDefaultTranslations(v, enTrans)
+
+	idTrans, _ := uni.GetTranslator("id")
+	_ = idTranslations.RegisterDefaultTranslations(v, idTrans)
+
+	return &Validate{validate: v, uni: uni}
 }
 
 func (v *Validate) Validate(i any) error {
-	err := v.validate.Struct(i)
+	return v.ValidateContext(context.Background(), i)
+}
+
+func (v *Validate) ValidateContext(ctx context.Context, i any) error {
+	err := v.validate.StructCtx(ctx, i)
 	if err == nil {
 		return nil
 	}
@@ -50,6 +63,12 @@ func (v *Validate) Validate(i any) error {
 	if !ok {
 		return err
 	}
+
+	locale := "en"
+	if loc := ctxi18n.Locale(ctx); loc != nil {
+		locale = loc.Code().String()
+	}
+	trans, _ := v.uni.FindTranslator(locale)
 
 	seenFields := make(map[string]struct{}, len(validationErrors))
 	fieldErrors := make([]FieldError, 0, len(validationErrors))
@@ -62,7 +81,7 @@ func (v *Validate) Validate(i any) error {
 
 		fieldErrors = append(fieldErrors, FieldError{
 			Field:   jsonFieldPath(i, fieldErr.StructNamespace(), fieldErr.StructField()),
-			Message: fieldErr.Translate(v.trans),
+			Message: fieldErr.Translate(trans),
 		})
 	}
 
