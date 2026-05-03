@@ -3,8 +3,8 @@ package server
 import (
 	"net/http"
 
-	"github.com/akfaiz/go-starter-kit/internal/errdefs"
-	"github.com/akfaiz/go-starter-kit/internal/validator"
+	"github.com/akfaiz/go-starter-kit/pkg/errdefs"
+	"github.com/akfaiz/go-starter-kit/pkg/validator"
 	"github.com/cockroachdb/errors"
 	"github.com/labstack/echo/v5"
 )

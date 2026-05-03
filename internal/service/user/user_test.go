@@ -10,7 +10,7 @@ import (
 	"github.com/akfaiz/go-starter-kit/internal/domain"
 	"github.com/akfaiz/go-starter-kit/internal/mocks"
 	"github.com/akfaiz/go-starter-kit/internal/service/user"
-	"github.com/akfaiz/go-starter-kit/internal/validator"
+	"github.com/akfaiz/go-starter-kit/pkg/validator"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"go.uber.org/mock/gomock"

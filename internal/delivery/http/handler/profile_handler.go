@@ -4,7 +4,7 @@ import (
 	"github.com/akfaiz/go-starter-kit/internal/delivery/http/handler/dto"
 	"github.com/akfaiz/go-starter-kit/internal/delivery/http/middleware/auth"
 	"github.com/akfaiz/go-starter-kit/internal/domain"
-	"github.com/akfaiz/go-starter-kit/internal/errdefs"
+	"github.com/akfaiz/go-starter-kit/pkg/errdefs"
 	"github.com/labstack/echo/v5"
 )
 

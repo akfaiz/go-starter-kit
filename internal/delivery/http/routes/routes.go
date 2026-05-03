@@ -40,32 +40,32 @@ func Register(rc RouteConfig) {
 	auth.POST("/register", rc.AuthHandler.Register).With(
 		option.Summary("User Registration"),
 		option.Request(new(dto.RegisterRequest)),
-		option.Response(201, responseOf(dto.TokenResponse{})),
+		option.Response(201, new(dto.Response[dto.TokenResponse])),
 	)
 	auth.POST("/login", rc.AuthHandler.Login).With(
 		option.Summary("User Login"),
 		option.Request(new(dto.LoginRequest)),
-		option.Response(200, responseOf(dto.TokenResponse{})),
+		option.Response(200, new(dto.Response[dto.TokenResponse])),
 	)
 	auth.POST("/refresh-token", rc.AuthHandler.RefreshToken).With(
 		option.Summary("Refresh Token"),
 		option.Request(new(dto.RefreshTokenRequest)),
-		option.Response(200, responseOf(dto.TokenResponse{})),
+		option.Response(200, new(dto.Response[dto.TokenResponse])),
 	)
 	auth.POST("/forgot-password/send-otp", rc.AuthHandler.SendForgotPasswordOTP).With(
 		option.Summary("Send forgot password OTP"),
 		option.Request(new(dto.SendForgotPasswordOTPRequest)),
-		option.Response(200, responseOf[any](nil)),
+		option.Response(200, new(dto.Response[any])),
 	)
 	auth.POST("/forgot-password/verify-otp", rc.AuthHandler.VerifyForgotPasswordOTP).With(
 		option.Summary("Verify forgot password OTP"),
 		option.Request(new(dto.VerifyForgotPasswordOTPRequest)),
-		option.Response(200, responseOf[any](nil)),
+		option.Response(200, new(dto.Response[any])),
 	)
 	auth.POST("/forgot-password/reset-password", rc.AuthHandler.ResetPasswordWithOTP).With(
 		option.Summary("Reset password with OTP"),
 		option.Request(new(dto.ResetPasswordWithOTPRequest)),
-		option.Response(200, responseOf[any](nil)),
+		option.Response(200, new(dto.Response[any])),
 	)
 
 	profile := v1.Group("/profile", rc.AuthMiddleware).With(
@@ -74,24 +74,16 @@ func Register(rc RouteConfig) {
 	)
 	profile.GET("", rc.ProfileHandler.GetProfile).With(
 		option.Summary("Get profile"),
-		option.Response(200, responseOf(dto.ProfileResponse{})),
+		option.Response(200, new(dto.Response[dto.ProfileResponse])),
 	)
 	profile.PUT("", rc.ProfileHandler.UpdateProfile).With(
 		option.Summary("Update profile"),
 		option.Request(new(dto.UpdateProfileRequest)),
-		option.Response(200, responseOf(dto.ProfileResponse{})),
+		option.Response(200, new(dto.Response[dto.ProfileResponse])),
 	)
 	profile.PUT("/password", rc.ProfileHandler.ChangePassword).With(
 		option.Summary("Update password"),
 		option.Request(new(dto.ChangePasswordRequest)),
-		option.Response(200, responseOf[any](nil)),
+		option.Response(200, new(dto.Response[any])),
 	)
-}
-
-func responseOf[T any](model T) any {
-	return struct {
-		dto.Response[T]
-	}{
-		Response: dto.Response[T]{Data: model},
-	}
 }

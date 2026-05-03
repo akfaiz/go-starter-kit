@@ -4,7 +4,7 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/akfaiz/go-starter-kit/internal/validator"
+	"github.com/akfaiz/go-starter-kit/pkg/validator"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

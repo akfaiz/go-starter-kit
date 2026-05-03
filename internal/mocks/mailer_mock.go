@@ -13,7 +13,7 @@ import (
 	context "context"
 	reflect "reflect"
 
-	go_mailgen "github.com/akfaiz/go-mailgen"
+	mailgen "github.com/akfaiz/go-mailgen"
 	gomock "go.uber.org/mock/gomock"
 )
 
@@ -42,7 +42,7 @@ func (m *MockMailer) EXPECT() *MockMailerMockRecorder {
 }
 
 // Send mocks base method.
-func (m *MockMailer) Send(ctx context.Context, msg *go_mailgen.Builder) error {
+func (m *MockMailer) Send(ctx context.Context, msg *mailgen.Builder) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Send", ctx, msg)
 	ret0, _ := ret[0].(error)

@@ -76,7 +76,7 @@ func jsonFieldPath(i interface{}, structNamespace, fallback string) string {
 	if t == nil {
 		return fallback
 	}
-	if t.Kind() == reflect.Ptr {
+	if t.Kind() == reflect.Pointer {
 		t = t.Elem()
 	}
 	if t.Kind() != reflect.Struct {
@@ -103,7 +103,7 @@ func jsonFieldPath(i interface{}, structNamespace, fallback string) string {
 			continue
 		}
 
-		for current.Kind() == reflect.Ptr {
+		for current.Kind() == reflect.Pointer {
 			current = current.Elem()
 		}
 
@@ -125,14 +125,14 @@ func jsonFieldPath(i interface{}, structNamespace, fallback string) string {
 		pathParts = append(pathParts, jsonName+indexSuffix)
 
 		current = field.Type
-		for current.Kind() == reflect.Ptr {
+		for current.Kind() == reflect.Pointer {
 			current = current.Elem()
 		}
 		indexCount := strings.Count(indexSuffix, "[")
 		for i := 0; i < indexCount; i++ {
 			if current.Kind() == reflect.Slice || current.Kind() == reflect.Array {
 				current = current.Elem()
-				for current.Kind() == reflect.Ptr {
+				for current.Kind() == reflect.Pointer {
 					current = current.Elem()
 				}
 			}

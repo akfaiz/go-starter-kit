@@ -32,7 +32,7 @@ jobs:
           args: --timeout=2m --verbose
 
   test:
-    name: Go Unit Tests
+    name: Go Tests & Coverage
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -48,12 +48,14 @@ jobs:
           set -euo pipefail
           go install github.com/onsi/ginkgo/v2/ginkgo@latest
       - name: Run tests
-        run: make test.ci
+        run: make test
+      - name: Run combined coverage (unit + e2e)
+        run: make coverage-all
       - name: Upload coverage report
         uses: actions/upload-artifact@v4
         with:
-          name: coverage
-          path: coverage.out
+          name: coverage-all
+          path: coverage.all.out
       - name: Upload JUnit test report
         uses: actions/upload-artifact@v4
         with:

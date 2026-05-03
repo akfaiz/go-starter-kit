@@ -86,74 +86,46 @@ func (mr *MockAuthServiceMockRecorder) Register(ctx, user any) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Register", reflect.TypeOf((*MockAuthService)(nil).Register), ctx, user)
 }
 
-// ResetPassword mocks base method.
-func (m *MockAuthService) ResetPassword(ctx context.Context, token, email, newPassword string) error {
+// ResetPasswordWithOTP mocks base method.
+func (m *MockAuthService) ResetPasswordWithOTP(ctx context.Context, email, otp, newPassword string) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ResetPassword", ctx, token, email, newPassword)
+	ret := m.ctrl.Call(m, "ResetPasswordWithOTP", ctx, email, otp, newPassword)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
-// ResetPassword indicates an expected call of ResetPassword.
-func (mr *MockAuthServiceMockRecorder) ResetPassword(ctx, token, email, newPassword any) *gomock.Call {
+// ResetPasswordWithOTP indicates an expected call of ResetPasswordWithOTP.
+func (mr *MockAuthServiceMockRecorder) ResetPasswordWithOTP(ctx, email, otp, newPassword any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ResetPassword", reflect.TypeOf((*MockAuthService)(nil).ResetPassword), ctx, token, email, newPassword)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ResetPasswordWithOTP", reflect.TypeOf((*MockAuthService)(nil).ResetPasswordWithOTP), ctx, email, otp, newPassword)
 }
 
-// SendForgotPasswordEmail mocks base method.
-func (m *MockAuthService) SendForgotPasswordEmail(ctx context.Context, email string) error {
+// SendForgotPasswordOTP mocks base method.
+func (m *MockAuthService) SendForgotPasswordOTP(ctx context.Context, email string) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "SendForgotPasswordEmail", ctx, email)
+	ret := m.ctrl.Call(m, "SendForgotPasswordOTP", ctx, email)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
-// SendForgotPasswordEmail indicates an expected call of SendForgotPasswordEmail.
-func (mr *MockAuthServiceMockRecorder) SendForgotPasswordEmail(ctx, email any) *gomock.Call {
+// SendForgotPasswordOTP indicates an expected call of SendForgotPasswordOTP.
+func (mr *MockAuthServiceMockRecorder) SendForgotPasswordOTP(ctx, email any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SendForgotPasswordEmail", reflect.TypeOf((*MockAuthService)(nil).SendForgotPasswordEmail), ctx, email)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SendForgotPasswordOTP", reflect.TypeOf((*MockAuthService)(nil).SendForgotPasswordOTP), ctx, email)
 }
 
-// SendVerificationEmail mocks base method.
-func (m *MockAuthService) SendVerificationEmail(ctx context.Context, email string) error {
+// VerifyForgotPasswordOTP mocks base method.
+func (m *MockAuthService) VerifyForgotPasswordOTP(ctx context.Context, email, otp string) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "SendVerificationEmail", ctx, email)
+	ret := m.ctrl.Call(m, "VerifyForgotPasswordOTP", ctx, email, otp)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
-// SendVerificationEmail indicates an expected call of SendVerificationEmail.
-func (mr *MockAuthServiceMockRecorder) SendVerificationEmail(ctx, email any) *gomock.Call {
+// VerifyForgotPasswordOTP indicates an expected call of VerifyForgotPasswordOTP.
+func (mr *MockAuthServiceMockRecorder) VerifyForgotPasswordOTP(ctx, email, otp any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SendVerificationEmail", reflect.TypeOf((*MockAuthService)(nil).SendVerificationEmail), ctx, email)
-}
-
-// ValidateResetPassword mocks base method.
-func (m *MockAuthService) ValidateResetPassword(ctx context.Context, token, email string) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ValidateResetPassword", ctx, token, email)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// ValidateResetPassword indicates an expected call of ValidateResetPassword.
-func (mr *MockAuthServiceMockRecorder) ValidateResetPassword(ctx, token, email any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ValidateResetPassword", reflect.TypeOf((*MockAuthService)(nil).ValidateResetPassword), ctx, token, email)
-}
-
-// VerifyEmail mocks base method.
-func (m *MockAuthService) VerifyEmail(ctx context.Context, token string, userID int64) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "VerifyEmail", ctx, token, userID)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// VerifyEmail indicates an expected call of VerifyEmail.
-func (mr *MockAuthServiceMockRecorder) VerifyEmail(ctx, token, userID any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "VerifyEmail", reflect.TypeOf((*MockAuthService)(nil).VerifyEmail), ctx, token, userID)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "VerifyForgotPasswordOTP", reflect.TypeOf((*MockAuthService)(nil).VerifyForgotPasswordOTP), ctx, email, otp)
 }
 
 // MockPasswordHasher is a mock of PasswordHasher interface.

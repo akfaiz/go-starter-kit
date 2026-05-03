@@ -6,9 +6,9 @@ import (
 
 	"github.com/akfaiz/go-starter-kit/internal/delivery/http/handler/dto"
 	"github.com/akfaiz/go-starter-kit/internal/domain"
-	"github.com/akfaiz/go-starter-kit/internal/errdefs"
 	"github.com/akfaiz/go-starter-kit/internal/security"
-	"github.com/akfaiz/go-starter-kit/internal/validator"
+	"github.com/akfaiz/go-starter-kit/pkg/errdefs"
+	"github.com/akfaiz/go-starter-kit/pkg/validator"
 	"github.com/invopop/ctxi18n/i18n"
 	"github.com/labstack/echo/v5"
 )

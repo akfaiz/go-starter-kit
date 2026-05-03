@@ -8,7 +8,7 @@ import (
 	"github.com/aarondl/opt/omit"
 	"github.com/aarondl/opt/omitnull"
 	"github.com/akfaiz/go-starter-kit/internal/domain"
-	"github.com/akfaiz/go-starter-kit/internal/validator"
+	"github.com/akfaiz/go-starter-kit/pkg/validator"
 )
 
 type service struct {

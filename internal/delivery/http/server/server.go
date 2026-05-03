@@ -6,7 +6,7 @@ import (
 
 	"github.com/akfaiz/go-starter-kit/internal/config"
 	appmiddleware "github.com/akfaiz/go-starter-kit/internal/delivery/http/middleware"
-	"github.com/akfaiz/go-starter-kit/internal/validator"
+	"github.com/akfaiz/go-starter-kit/pkg/validator"
 	echoopentelemetry "github.com/labstack/echo-opentelemetry"
 	"github.com/labstack/echo/v5"
 	echomiddleware "github.com/labstack/echo/v5/middleware"

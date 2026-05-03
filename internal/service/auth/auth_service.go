@@ -11,8 +11,8 @@ import (
 	"github.com/akfaiz/go-mailgen"
 	"github.com/akfaiz/go-starter-kit/internal/config"
 	"github.com/akfaiz/go-starter-kit/internal/domain"
-	"github.com/akfaiz/go-starter-kit/internal/errdefs"
-	"github.com/akfaiz/go-starter-kit/internal/validator"
+	"github.com/akfaiz/go-starter-kit/pkg/errdefs"
+	"github.com/akfaiz/go-starter-kit/pkg/validator"
 	"github.com/invopop/ctxi18n/i18n"
 )
 
