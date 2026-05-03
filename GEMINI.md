@@ -6,12 +6,12 @@ This is a **Go API Starter Kit**, an API-only project built with Go.
 - **Language:** Go 1.25.7
 - **Web Framework:** Echo v5
 - **API Documentation:** OpenAPI via `github.com/oaswrap/spec/adapter/echov5openapi`
-- **Database / ORM:** PostgreSQL with Bun
+- **Database / ORM:** PostgreSQL with GORM
 - **Caching & Session:** Redis (used for auth rate limiting and session storage)
 - **Migrations:** Migris
 - **Authentication:** JWT (Access and Refresh tokens) with token pair session management in Redis.
 - **Dependency Injection:** Uber FX
-- **Observability:** OpenTelemetry (HTTP, Bun DB, Redis tracing) with Jaeger for local visualization.
+- **Observability:** OpenTelemetry (HTTP, GORM DB, Redis tracing) with Jaeger for local visualization.
 - **Email:** go-mailgen for email content
 
 ## Architecture & Structure
@@ -23,7 +23,7 @@ The project follows a standard structured layout common in Go APIs:
   - `domain/`: Domain interfaces and models.
   - `hash/`: Password hashing (Argon2id) and JWT management.
   - `infra/`: Infrastructure integrations (Database, Redis, SMTP).
-  - `repository/`: Data access layer for User, Session, and UserToken.
+  - `repository/`: Data access layer for User, Session, and PasswordResetToken.
   - `service/`: Business logic layer.
 - `db/migrations/`: Database migration files.
 - `test/`: End-to-end tests and mocks.

@@ -2,24 +2,23 @@ package user
 
 import (
 	"context"
-	"database/sql"
 	"errors"
 	"strings"
 
 	"github.com/akfaiz/go-starter-kit/internal/domain"
 	"github.com/akfaiz/go-starter-kit/internal/model"
 	"github.com/akfaiz/go-starter-kit/internal/telemetry"
-	"github.com/uptrace/bun"
 	"go.opentelemetry.io/otel"
+	"gorm.io/gorm"
 )
 
 var tracer = otel.Tracer("user-repository")
 
 type repository struct {
-	db *bun.DB
+	db *gorm.DB
 }
 
-func NewRepository(db *bun.DB) domain.UserRepository {
+func NewRepository(db *gorm.DB) domain.UserRepository {
 	return &repository{db: db}
 }
 
@@ -28,8 +27,7 @@ func (r *repository) Create(ctx context.Context, user *domain.User) error {
 	defer span.End()
 
 	m := model.NewUserFromDomain(user)
-	_, err := r.db.NewInsert().Model(m).Exec(ctx)
-	if err != nil {
+	if err := gorm.G[model.User](r.db).Create(ctx, m); err != nil {
 		if strings.Contains(err.Error(), "users_email_unique") {
 			return domain.ErrEmailAlreadyExists
 		}
@@ -45,10 +43,9 @@ func (r *repository) FindByEmail(ctx context.Context, email string) (*domain.Use
 	ctx, span := telemetry.StartSpan(ctx, tracer)
 	defer span.End()
 
-	user := new(model.User)
-	err := r.db.NewSelect().Model(user).Where("email = ?", email).Scan(ctx)
+	user, err := gorm.G[model.User](r.db).Where("email = ?", email).First(ctx)
 	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, domain.ErrResourceNotFound
 		}
 		return nil, err
@@ -60,10 +57,9 @@ func (r *repository) FindByID(ctx context.Context, id int64) (*domain.User, erro
 	ctx, span := telemetry.StartSpan(ctx, tracer)
 	defer span.End()
 
-	user := new(model.User)
-	err := r.db.NewSelect().Model(user).Where("id = ?", id).Scan(ctx)
+	user, err := gorm.G[model.User](r.db).Where("id = ?", id).First(ctx)
 	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, domain.ErrResourceNotFound
 		}
 		return nil, err
@@ -78,19 +74,23 @@ func (r *repository) FindAll(
 	ctx, span := telemetry.StartSpan(ctx, tracer)
 	defer span.End()
 
-	users := make([]*model.User, 0)
-	query := r.db.NewSelect().Model(&users)
+	query := gorm.G[model.User](r.db).Where("1=1")
 
 	if params.Search != "" {
 		query = query.Where("name ILIKE ? OR email ILIKE ?", "%"+params.Search+"%", "%"+params.Search+"%")
 	}
 
+	total, err := query.Count(ctx, "*")
+	if err != nil {
+		return nil, err
+	}
+
 	query = applySort(query, params)
 
-	count, err := query.
+	users, err := query.
 		Limit(params.Limit).
 		Offset((params.Page - 1) * params.Limit).
-		ScanAndCount(ctx)
+		Find(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -102,11 +102,11 @@ func (r *repository) FindAll(
 
 	return &domain.Paginated[*domain.User]{
 		Items:      domainUsers,
-		Pagination: domain.NewPagination(params.Page, params.Limit, int64(count)),
+		Pagination: domain.NewPagination(params.Page, params.Limit, total),
 	}, nil
 }
 
-func applySort(query *bun.SelectQuery, params domain.FindAllParams) *bun.SelectQuery {
+func applySort(query gorm.ChainInterface[model.User], params domain.FindAllParams) gorm.ChainInterface[model.User] {
 	if params.Sort == "" {
 		return query.Order("id ASC")
 	}
@@ -135,20 +135,52 @@ func (r *repository) Update(ctx context.Context, id int64, data *domain.UserUpda
 	ctx, span := telemetry.StartSpan(ctx, tracer)
 	defer span.End()
 
-	query := r.db.NewUpdate().Model((*model.User)(nil)).Where("id = ?", id)
-	query = model.ApplyUserUpdate(query, data)
-	res, err := query.Exec(ctx)
+	var user model.User
+	var fields []string
+	if data.Name.IsValue() {
+		user.Name = data.Name.MustGet()
+		fields = append(fields, "name")
+	}
+	if data.Email.IsValue() {
+		user.Email = data.Email.MustGet()
+		fields = append(fields, "email")
+	}
+	if data.Password.IsValue() {
+		user.Password = data.Password.MustGet()
+		fields = append(fields, "password")
+	}
+	if data.EmailVerifiedAt.IsValue() {
+		if data.EmailVerifiedAt.IsNull() {
+			user.EmailVerifiedAt = nil
+		} else {
+			val := data.EmailVerifiedAt.MustGet()
+			user.EmailVerifiedAt = &val
+		}
+		fields = append(fields, "email_verified_at")
+	}
+
+	if len(fields) == 0 {
+		return nil
+	}
+
+	args := make([]any, len(fields)-1)
+	for i := 1; i < len(fields); i++ {
+		args[i-1] = fields[i]
+	}
+
+	rowsAffected, err := gorm.G[model.User](r.db).
+		Where("id = ?", id).
+		Select(fields[0], args...).
+		Updates(ctx, user)
+
 	if err != nil {
 		if strings.Contains(err.Error(), "users_email_unique") {
 			return domain.ErrEmailAlreadyExists
 		}
 		return err
 	}
-	rows, err := res.RowsAffected()
-	if err != nil {
-		return err
-	}
-	if rows == 0 {
+
+	if rowsAffected == 0 {
 		return domain.ErrResourceNotFound
 	}
 
@@ -159,15 +191,12 @@ func (r *repository) Delete(ctx context.Context, id int64) error {
 	ctx, span := telemetry.StartSpan(ctx, tracer)
 	defer span.End()
 
-	res, err := r.db.NewDelete().Model(&model.User{ID: id}).WherePK().Exec(ctx)
+	rowsAffected, err := gorm.G[model.User](r.db).Where("id = ?", id).Delete(ctx)
 	if err != nil {
 		return err
 	}
-	rows, err := res.RowsAffected()
-	if err != nil {
-		return err
-	}
-	if rows == 0 {
+
+	if rowsAffected == 0 {
 		return domain.ErrResourceNotFound
 	}
 	return nil

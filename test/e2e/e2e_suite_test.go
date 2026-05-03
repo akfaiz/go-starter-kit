@@ -24,8 +24,8 @@ import (
 	redisclient "github.com/redis/go-redis/v9"
 	"github.com/testcontainers/testcontainers-go"
 	rediscontainer "github.com/testcontainers/testcontainers-go/modules/redis"
-	"github.com/uptrace/bun"
 	"go.uber.org/fx"
+	"gorm.io/gorm"
 )
 
 func TestE2E(t *testing.T) {
@@ -37,7 +37,7 @@ var (
 	e2eCtx         context.Context
 	e2eDBContainer *test.DBContainer
 	e2eRedisC      *rediscontainer.RedisContainer
-	e2eDB          *bun.DB
+	e2eDB          *gorm.DB
 	e2eRDB         *redisclient.Client
 	e2eEcho        *echo.Echo
 	e2eFXApp       *fx.App

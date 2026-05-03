@@ -11,8 +11,8 @@ import (
 	"github.com/labstack/echo/v5"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"github.com/uptrace/bun"
-	"github.com/uptrace/bun/dialect/pgdialect"
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
 )
 
 var _ = Describe("HealthCheckHandler", Label("unit", "handler"), func() {
@@ -22,10 +22,18 @@ var _ = Describe("HealthCheckHandler", Label("unit", "handler"), func() {
 		expect *httpexpect.Expect
 	)
 
-	newDB := func() (*bun.DB, sqlmock.Sqlmock, *sql.DB) {
+	newDB := func() (*gorm.DB, sqlmock.Sqlmock, *sql.DB) {
 		sqldb, mock, err := sqlmock.New(sqlmock.MonitorPingsOption(true))
 		Expect(err).NotTo(HaveOccurred())
-		return bun.NewDB(sqldb, pgdialect.New()), mock, sqldb
+
+		// GORM tries to ping the DB on opening
+		mock.ExpectPing()
+
+		db, err := gorm.Open(postgres.New(postgres.Config{
+			Conn: sqldb,
+		}), &gorm.Config{})
+		Expect(err).NotTo(HaveOccurred())
+		return db, mock, sqldb
 	}
 
 	BeforeEach(func() {
@@ -36,7 +44,6 @@ var _ = Describe("HealthCheckHandler", Label("unit", "handler"), func() {
 	It("returns ok when database ping succeeds", func() {
 		db, mock, sqldb := newDB()
 		defer func() {
-			_ = db.Close()
 			_ = sqldb.Close()
 		}()
 
@@ -58,7 +65,6 @@ var _ = Describe("HealthCheckHandler", Label("unit", "handler"), func() {
 	It("returns error payload when database ping fails", func() {
 		db, mock, sqldb := newDB()
 		defer func() {
-			_ = db.Close()
 			_ = sqldb.Close()
 		}()
 

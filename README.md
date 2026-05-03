@@ -6,13 +6,13 @@ API-only starter kit built with Go.
 
 - Echo v5
 - OpenAPI router: `github.com/oaswrap/spec/adapter/echov5openapi`
-- Bun + PostgreSQL
+- GORM + PostgreSQL
 - Redis (auth rate limit + session store)
 - Migris migrations
 - JWT auth (access + refresh)
 - Token pair session management in Redis (access + refresh)
 - Forgot password with OTP via email
-- OpenTelemetry tracing (HTTP, Bun DB, Redis)
+- OpenTelemetry tracing (HTTP, GORM DB, Redis)
 - Jaeger for local trace visualization
 - go-mailgen for email content
 - Uber FX for dependency injection

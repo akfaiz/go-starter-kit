@@ -37,8 +37,8 @@ go install github.com/onsi/ginkgo/v2/ginkgo@latest
 - `serve` builds an Uber Fx app (`cmd/serve/serve.go`) and wires modules in order: infra (DB/Redis/SMTP), repository, hash, security, service, telemetry, HTTP delivery. The Echo server lifecycle is managed through Fx hooks.
 - HTTP routing is declared in `internal/delivery/http/routes/routes.go` using `echov5openapi`; route registration and OpenAPI metadata are centralized there.
 - Request flow is layered: handler (`internal/delivery/http/handler`) -> service (`internal/service`) -> repository (`internal/repository`) through interfaces defined in `internal/domain`.
-- Persistence is split by concern: PostgreSQL (Bun) for durable entities (`users`, `password_reset_tokens`) and Redis for session tokens + auth rate-limiting state. Auth session validity is enforced by matching JWTs against Redis-stored active tokens.
-- Telemetry is cross-cutting: Echo middleware, Bun query hooks, and Redis instrumentation all feed OpenTelemetry (`internal/telemetry`, `internal/infra/database.go`, `internal/infra/redis_client.go`).
+- Persistence is split by concern: PostgreSQL (GORM) for durable entities (`users`, `password_reset_tokens`) and Redis for session tokens + auth rate-limiting state. Auth session validity is enforced by matching JWTs against Redis-stored active tokens.
+- Telemetry is cross-cutting: Echo middleware, GORM plugins, and Redis instrumentation all feed OpenTelemetry (`internal/telemetry`, `internal/infra/database.go`, `internal/infra/redis_client.go`).
 
 ## Key conventions
 

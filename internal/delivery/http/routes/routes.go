@@ -32,7 +32,7 @@ func Register(rc RouteConfig) {
 		rc.Echo,
 		option.WithTitle("Go Starter Kit API"),
 		option.WithVersion("1.0.0"),
-		option.WithDescription("API starterkit with Echo v5, Bun, Migris, and OTP auth reset flow"),
+		option.WithDescription("API starterkit with Echo v5, Gorm, Migris, and OTP auth reset flow"),
 		option.WithReflectorConfig(option.StripDefNamePrefix("Dto")),
 		option.WithSecurity("bearerAuth", option.SecurityHTTPBearer("Bearer")),
 		option.WithServer(

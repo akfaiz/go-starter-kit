@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 	"strconv"
+	"strings"
 
 	_ "github.com/akfaiz/go-starter-kit/db/migrations" // Import migrations
 	"github.com/akfaiz/go-starter-kit/internal/config"
@@ -13,14 +14,14 @@ import (
 	"github.com/onsi/ginkgo/v2"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/modules/postgres"
-	"github.com/uptrace/bun"
-	"github.com/uptrace/bun/dialect/pgdialect"
+	gormpostgres "gorm.io/driver/postgres"
+	"gorm.io/gorm"
 )
 
-// DBContainer holds PostgreSQL container and Bun DB connection.
+// DBContainer holds PostgreSQL container and GORM DB connection.
 type DBContainer struct {
 	Container *postgres.PostgresContainer
-	DB        *bun.DB
+	DB        *gorm.DB
 	Config    config.Database
 }
 
@@ -83,13 +84,11 @@ func NewDBContainer(ctx context.Context, t ginkgo.FullGinkgoTInterface) *DBConta
 		t.Fatalf("failed to run migrations: %v", err)
 	}
 
-	// Create Bun DB connection
-	sqlDB, err = sql.Open("pgx", dbConfig.DSN())
+	// Create GORM DB connection
+	db, err := gorm.Open(gormpostgres.Open(dbConfig.DSN()), &gorm.Config{})
 	if err != nil {
-		t.Fatalf("failed to open bun connection: %v", err)
+		t.Fatalf("failed to open gorm connection: %v", err)
 	}
-
-	db := bun.NewDB(sqlDB, pgdialect.New())
 
 	return &DBContainer{
 		Container: pgContainer,
@@ -99,34 +98,36 @@ func NewDBContainer(ctx context.Context, t ginkgo.FullGinkgoTInterface) *DBConta
 }
 
 // TruncateAll truncates all tables in the database to reset state between tests.
-// It checks for table existence before truncating to avoid errors when some migrations
-// haven't created all tables.
+// It dynamically fetches all tables in the public schema except the migration metadata.
 func (tc *DBContainer) TruncateAll(ctx context.Context) error {
-	tables := []string{
-		"password_reset_tokens",
-		"users",
+	var tables []string
+	query := `
+		SELECT tablename 
+		FROM pg_catalog.pg_tables 
+		WHERE schemaname = 'public' 
+		AND tablename != 'migris_migrations'`
+
+	if err := tc.DB.WithContext(ctx).Raw(query).Scan(&tables).Error; err != nil {
+		return err
 	}
 
-	for _, table := range tables {
-		// Check if table exists using to_regclass
-		var reg sql.NullString
-		q := fmt.Sprintf("SELECT to_regclass('public.%s')", table)
-		if err := tc.DB.QueryRowContext(ctx, q).Scan(&reg); err != nil {
-			return err
-		}
-		if reg.Valid {
-			if _, err := tc.DB.ExecContext(ctx, fmt.Sprintf("TRUNCATE TABLE %s CASCADE", table)); err != nil {
-				return err
-			}
-		}
+	if len(tables) == 0 {
+		return nil
 	}
-	return nil
+
+	// Truncate all tables in a single command for better performance
+	truncateQuery := fmt.Sprintf("TRUNCATE TABLE %s CASCADE", strings.Join(tables, ", "))
+	return tc.DB.WithContext(ctx).Exec(truncateQuery).Error
 }
 
 // Close closes the database connection and terminates the container.
 func (tc *DBContainer) Close(_ context.Context) error {
 	if tc.DB != nil {
-		if err := tc.DB.Close(); err != nil {
+		sqlDB, err := tc.DB.DB()
+		if err != nil {
+			return err
+		}
+		if err := sqlDB.Close(); err != nil {
 			return err
 		}
 	}

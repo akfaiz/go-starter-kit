@@ -29,7 +29,7 @@ This project follows a structured layering pattern: `Delivery (HTTP) -> Service 
 
 ### 3. Repository (Data Access)
 - **Location**: `internal/repository/`
-- **Role**: Bun ORM specific logic, CRUD operations, and mapping between `model` (DB) and `domain` (Business) entities.
+- **Role**: GORM specific logic, CRUD operations, and mapping between `model` (DB) and `domain` (Business) entities.
 - **Rules**:
   - Use `model.New[Entity]FromDomain(domainEntity)` to map Domain -> Model.
   - Use `modelEntity.ToDomain()` to map Model -> Domain.
@@ -39,12 +39,12 @@ This project follows a structured layering pattern: `Delivery (HTTP) -> Service 
 
 ### 4. Domain & Model
 - **Domain**: `internal/domain/` contains interfaces and business entities used across layers.
-- **Model**: `internal/model/` contains Bun-tagged structs representing DB tables.
+- **Model**: `internal/model/` contains GORM-tagged structs representing DB tables.
 
 ## Workflow: Adding a New Feature
 
 1. **Define Domain**: Create/update entities and interfaces in `internal/domain/`.
-2. **Create Model**: Define the DB struct in `internal/model/` with Bun tags.
+2. **Create Model**: Define the DB struct in `internal/model/` with GORM tags.
 3. **Create Migration**: Add a new migration in `db/migrations/`.
 4. **Implement Repository**: Create the repository implementation in `internal/repository/`.
 5. **Implement Service**: Create the service implementation in `internal/service/`.

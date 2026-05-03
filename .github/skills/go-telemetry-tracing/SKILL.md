@@ -12,7 +12,7 @@ This project uses **OpenTelemetry (OTel)** for distributed tracing, with **Jaege
 - **Exporters**: Configured to send traces to a collector (e.g., Jaeger) over OTLP.
 - **Instrumentations**:
   - `Echo`: Traces incoming HTTP requests.
-  - `Bun`: Traces database queries.
+  - `GORM`: Traces database queries.
   - `Redis`: Traces cache operations.
 
 ## Adding Custom Tracing
