@@ -1,4 +1,4 @@
-//go:generate mockgen -source=auth_guard.go -destination=../mocks/security_mock.go -package=mocks
+//go:generate mockgen -source=auth_guard.go -destination=../../test/mocks/security_mock.go -package=mocks
 package security
 
 import (

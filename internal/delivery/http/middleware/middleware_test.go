@@ -5,7 +5,7 @@ import (
 	"net/http/httptest"
 
 	"github.com/akfaiz/go-starter-kit/internal/delivery/http/middleware"
-	"github.com/akfaiz/go-starter-kit/internal/mocks"
+	"github.com/akfaiz/go-starter-kit/test/mocks"
 	"github.com/invopop/ctxi18n"
 	"github.com/labstack/echo/v5"
 	. "github.com/onsi/ginkgo/v2"

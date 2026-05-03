@@ -13,9 +13,9 @@ import (
 
 	"github.com/akfaiz/go-starter-kit/internal/config"
 	"github.com/akfaiz/go-starter-kit/internal/domain"
-	"github.com/akfaiz/go-starter-kit/internal/mocks"
 	"github.com/akfaiz/go-starter-kit/internal/service/auth"
 	"github.com/akfaiz/go-starter-kit/pkg/validator"
+	"github.com/akfaiz/go-starter-kit/test/mocks"
 )
 
 var _ = Describe("Auth", Label("unit", "usecase"), func() {

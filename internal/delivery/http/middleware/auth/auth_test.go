@@ -7,8 +7,8 @@ import (
 
 	authmw "github.com/akfaiz/go-starter-kit/internal/delivery/http/middleware/auth"
 	"github.com/akfaiz/go-starter-kit/internal/domain"
-	"github.com/akfaiz/go-starter-kit/internal/mocks"
 	"github.com/akfaiz/go-starter-kit/pkg/errdefs"
+	"github.com/akfaiz/go-starter-kit/test/mocks"
 	"github.com/labstack/echo/v5"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"

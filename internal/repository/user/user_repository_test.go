@@ -8,7 +8,7 @@ import (
 
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/akfaiz/go-starter-kit/internal/domain"
-	"github.com/akfaiz/go-starter-kit/internal/mocks"
+	"github.com/akfaiz/go-starter-kit/test/mocks"
 	"github.com/stretchr/testify/assert"
 )
 

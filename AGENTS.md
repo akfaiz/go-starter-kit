@@ -5,7 +5,7 @@
 - Core app code is in `internal/`: `delivery/http/` (handlers/routes/middleware/server), `service/` (business logic), `repository/` (data access), plus `domain/`, `model/`, `config/`, and helpers like `hash/`, `validator/`, `logger/`.
 - Shared reusable utilities are in `pkg/` (for example `pkg/env`).
 - Database migrations are in `db/migrations/`.
-- Tests are colocated with code as `*_test.go`; test helpers and generated mocks are in `internal/mocks/`.
+- Tests are colocated with code as `*_test.go`; test helpers and generated mocks are in `test/mocks/`.
 
 ## Build, Test, and Development Commands
 - `make tidy`: sync module dependencies with `go.mod`/`go.sum`.
@@ -25,7 +25,7 @@
 - Primary test command: `make test`.
 - Tests use Go `testing` with `testify`; Ginkgo/Gomega suites are also present for some modules.
 - Name tests with `TestXxx` and keep them next to implementation files.
-- Prefer table-driven tests for service/repository behavior; use `internal/mocks/` for dependency isolation.
+- Prefer table-driven tests for service/repository behavior; use `test/mocks/` for dependency isolation.
 
 ## Commit & Pull Request Guidelines
 - Current history is minimal (`initial project`) and uses short lowercase commit messages.

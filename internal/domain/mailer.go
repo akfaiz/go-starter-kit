@@ -1,4 +1,4 @@
-//go:generate mockgen -source=mailer.go -destination=../mocks/mailer_mock.go -package=mocks
+//go:generate mockgen -source=mailer.go -destination=../../test/mocks/mailer_mock.go -package=mocks
 package domain
 
 import (

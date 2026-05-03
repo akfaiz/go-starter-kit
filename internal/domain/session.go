@@ -1,4 +1,4 @@
-//go:generate mockgen -source=session.go -destination=../mocks/session_mock.go -package=mocks
+//go:generate mockgen -source=session.go -destination=../../test/mocks/session_mock.go -package=mocks
 package domain
 
 import (

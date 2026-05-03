@@ -1,0 +1,15 @@
+pre-commit:
+  parallel: true
+  commands:
+    fmt:
+      glob: "*.go"
+      run: go fmt ./...
+    lint:
+      glob: "*.go"
+      run: golangci-lint run --timeout 5m
+
+commit-msg:
+  commands:
+    conventional-commits:
+      run: |
+        head -n 1 {1} | grep -qE "^(build|chore|ci|docs|feat|fix|perf|refactor|revert|style|test)(\([a-zA-Z0-9_\-\.]+\))?(!)?: .+" || (echo "\n\033[31mError:\033[0m Commit message must follow Conventional Commits format\nExample: feat: add user login\nAllowed types: build, chore, ci, docs, feat, fix, perf, refactor, revert, style, test\n" && exit 1)
