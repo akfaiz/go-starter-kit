@@ -37,27 +37,27 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
           check-latest: true
           cache: true
+
       - name: Install Tools
         run: |
           set -euo pipefail
-          go install github.com/onsi/ginkgo/v2/ginkgo@latest
+          go install github.com/onsi/ginkgo/v2/ginkgo@v2.28.3
+
       - name: Run tests
         run: make test
+
       - name: Run combined coverage (unit + e2e)
         run: make coverage-all
+
       - name: Upload coverage report
         uses: actions/upload-artifact@v4
         with:
-          name: coverage-all
-          path: coverage.all.out
-      - name: Upload JUnit test report
-        uses: actions/upload-artifact@v4
-        with:
-          name: junit-report
-          path: junit.xml
+          name: coverage-report
+          path: coverage.out
