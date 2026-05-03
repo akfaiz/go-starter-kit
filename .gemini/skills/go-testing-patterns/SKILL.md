@@ -35,7 +35,27 @@ var _ = Describe("UserHandler", Label("unit"), func() {
 ```
 
 ### Repositories
-Repositories often use `sqlmock` to simulate database interactions.
+Repositories are tested as integration tests against a real PostgreSQL database using Testcontainers.
+
+- **Setup**: Use `test.NewDBContainer` in `BeforeSuite` to spin up a container.
+- **Isolation**: Use `dbContainer.TruncateAll(ctx)` in `BeforeEach` to ensure a clean state for each test.
+
+Example (Repository Test):
+```go
+var _ = BeforeSuite(func() {
+	ctx = context.Background()
+	dbContainer = test.NewDBContainer(ctx, GinkgoT())
+	r = user.NewRepository(dbContainer.DB)
+})
+
+var _ = Describe("UserRepository", func() {
+	BeforeEach(func() {
+		err := dbContainer.TruncateAll(ctx)
+		Expect(err).NotTo(HaveOccurred())
+	})
+	// tests...
+})
+```
 
 ## E2E Testing
 E2E tests run against a real database and Redis (usually in Docker).
