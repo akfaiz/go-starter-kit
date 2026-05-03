@@ -4,7 +4,7 @@ import (
 	"github.com/akfaiz/go-starter-kit/internal/delivery/http/handler/dto"
 	"github.com/akfaiz/go-starter-kit/internal/delivery/http/middleware/auth"
 	"github.com/akfaiz/go-starter-kit/internal/domain"
-	"github.com/akfaiz/go-starter-kit/pkg/errdefs"
+	"github.com/akfaiz/go-starter-kit/pkg/problem"
 	"github.com/labstack/echo/v5"
 )
 
@@ -19,7 +19,7 @@ func NewProfileHandler(userService domain.UserService) *ProfileHandler {
 func (h *ProfileHandler) GetProfile(c *echo.Context) error {
 	claims := auth.GetUser(c)
 	if claims == nil {
-		return errdefs.ErrUnauthorized()
+		return problem.ErrUnauthorized()
 	}
 
 	user, err := h.userService.FindByID(c.Request().Context(), claims.ID)
@@ -42,7 +42,7 @@ func (h *ProfileHandler) UpdateProfile(c *echo.Context) error {
 
 	claims := auth.GetUser(c)
 	if claims == nil {
-		return errdefs.ErrUnauthorized()
+		return problem.ErrUnauthorized()
 	}
 
 	user, err := h.userService.FindByID(c.Request().Context(), claims.ID)
@@ -76,7 +76,7 @@ func (h *ProfileHandler) ChangePassword(c *echo.Context) error {
 
 	claims := auth.GetUser(c)
 	if claims == nil {
-		return errdefs.ErrUnauthorized()
+		return problem.ErrUnauthorized()
 	}
 
 	if err := h.userService.ChangePassword(

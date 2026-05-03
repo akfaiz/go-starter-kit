@@ -3,6 +3,7 @@ package user_test
 import (
 	"context"
 	"errors"
+	"testing"
 	"time"
 
 	"github.com/aarondl/opt/omit"
@@ -15,6 +16,11 @@ import (
 	. "github.com/onsi/gomega"
 	"go.uber.org/mock/gomock"
 )
+
+func TestUserService(t *testing.T) {
+	RegisterFailHandler(Fail)
+	RunSpecs(t, "User Service Suite")
+}
 
 var _ = Describe("User Service", Label("unit", "usecase"), func() {
 	var (

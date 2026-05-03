@@ -11,7 +11,7 @@ import (
 	"github.com/akfaiz/go-mailgen"
 	"github.com/akfaiz/go-starter-kit/internal/config"
 	"github.com/akfaiz/go-starter-kit/internal/domain"
-	"github.com/akfaiz/go-starter-kit/pkg/errdefs"
+	"github.com/akfaiz/go-starter-kit/pkg/problem"
 	"github.com/akfaiz/go-starter-kit/pkg/validator"
 	"github.com/invopop/ctxi18n/i18n"
 )
@@ -96,12 +96,12 @@ func (s *service) RefreshToken(ctx context.Context, refreshToken string) (*domai
 	storedRefreshToken, err := s.sessionRepo.GetRefreshToken(ctx, claims.ID)
 	if err != nil {
 		if errors.Is(err, domain.ErrResourceNotFound) {
-			return nil, errdefs.ErrUnauthorized("invalid refresh token")
+			return nil, problem.ErrUnauthorized("invalid refresh token")
 		}
 		return nil, err
 	}
 	if storedRefreshToken != refreshToken {
-		return nil, errdefs.ErrUnauthorized("invalid refresh token")
+		return nil, problem.ErrUnauthorized("invalid refresh token")
 	}
 
 	user, err := s.userRepo.FindByID(ctx, claims.ID)
@@ -194,7 +194,7 @@ func (s *service) validateForgotPasswordOTP(ctx context.Context, email, otp stri
 	user, err := s.userRepo.FindByEmail(ctx, email)
 	if err != nil {
 		if errors.Is(err, domain.ErrResourceNotFound) {
-			return nil, errdefs.ErrBadRequest(i18n.T(ctx, "passwords.user"))
+			return nil, problem.ErrBadRequest(i18n.T(ctx, "passwords.user"))
 		}
 		return nil, err
 	}
@@ -202,13 +202,13 @@ func (s *service) validateForgotPasswordOTP(ctx context.Context, email, otp stri
 	stored, err := s.passwordResetTokenRepo.FindOne(ctx, user.ID)
 	if err != nil {
 		if errors.Is(err, domain.ErrResourceNotFound) {
-			return nil, errdefs.ErrBadRequest(i18n.T(ctx, "passwords.token"))
+			return nil, problem.ErrBadRequest(i18n.T(ctx, "passwords.token"))
 		}
 		return nil, err
 	}
 
 	if time.Now().After(stored.ExpiresAt) {
-		return nil, errdefs.ErrBadRequest(i18n.T(ctx, "passwords.token"))
+		return nil, problem.ErrBadRequest(i18n.T(ctx, "passwords.token"))
 	}
 
 	match, err := s.passwordHasher.Verify(otp, stored.Token)
@@ -216,7 +216,7 @@ func (s *service) validateForgotPasswordOTP(ctx context.Context, email, otp stri
 		return nil, err
 	}
 	if !match {
-		return nil, errdefs.ErrBadRequest(i18n.T(ctx, "passwords.token"))
+		return nil, problem.ErrBadRequest(i18n.T(ctx, "passwords.token"))
 	}
 
 	return user, nil

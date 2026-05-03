@@ -4,16 +4,22 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"testing"
 
 	authmw "github.com/akfaiz/go-starter-kit/internal/delivery/http/middleware/auth"
 	"github.com/akfaiz/go-starter-kit/internal/domain"
-	"github.com/akfaiz/go-starter-kit/pkg/errdefs"
+	"github.com/akfaiz/go-starter-kit/pkg/problem"
 	"github.com/akfaiz/go-starter-kit/test/mocks"
 	"github.com/labstack/echo/v5"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"go.uber.org/mock/gomock"
 )
+
+func TestAuthMiddleware(t *testing.T) {
+	RegisterFailHandler(Fail)
+	RunSpecs(t, "Auth Middleware Suite")
+}
 
 var _ = Describe("Auth middleware", Label("unit", "middleware"), func() {
 	var (
@@ -53,7 +59,7 @@ var _ = Describe("Auth middleware", Label("unit", "middleware"), func() {
 		})(c)
 
 		Expect(nextCalled).To(BeFalse())
-		var appErr *errdefs.AppError
+		var appErr *problem.AppError
 		Expect(errors.As(err, &appErr)).To(BeTrue())
 		Expect(appErr.Status).To(Equal(http.StatusUnauthorized))
 	})
@@ -63,7 +69,7 @@ var _ = Describe("Auth middleware", Label("unit", "middleware"), func() {
 
 		err := authmw.NewWithSession(jwt, session)(func(c *echo.Context) error { return nil })(c)
 
-		var appErr *errdefs.AppError
+		var appErr *problem.AppError
 		Expect(errors.As(err, &appErr)).To(BeTrue())
 		Expect(appErr.Status).To(Equal(http.StatusUnauthorized))
 	})
@@ -73,7 +79,7 @@ var _ = Describe("Auth middleware", Label("unit", "middleware"), func() {
 
 		err := authmw.NewWithSession(jwt, session)(func(c *echo.Context) error { return nil })(c)
 
-		var appErr *errdefs.AppError
+		var appErr *problem.AppError
 		Expect(errors.As(err, &appErr)).To(BeTrue())
 		Expect(appErr.Status).To(Equal(http.StatusUnauthorized))
 	})
@@ -112,7 +118,7 @@ var _ = Describe("Auth middleware", Label("unit", "middleware"), func() {
 
 		err := authmw.NewWithSession(jwt, session)(func(c *echo.Context) error { return nil })(c)
 
-		var appErr *errdefs.AppError
+		var appErr *problem.AppError
 		Expect(errors.As(err, &appErr)).To(BeTrue())
 		Expect(appErr.Status).To(Equal(http.StatusUnauthorized))
 	})

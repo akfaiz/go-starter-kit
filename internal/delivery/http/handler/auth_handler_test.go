@@ -9,7 +9,7 @@ import (
 	"github.com/akfaiz/go-starter-kit/internal/delivery/http/handler"
 	"github.com/akfaiz/go-starter-kit/internal/domain"
 	"github.com/akfaiz/go-starter-kit/internal/security"
-	"github.com/akfaiz/go-starter-kit/pkg/errdefs"
+	"github.com/akfaiz/go-starter-kit/pkg/problem"
 	"github.com/akfaiz/go-starter-kit/test/mocks"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -79,7 +79,7 @@ var _ = Describe("AuthHandler", Label("unit", "handler"), func() {
 			Expect(err).To(HaveOccurred())
 			Expect(rec.Header().Get("Retry-After")).To(Equal("30"))
 
-			var appErr *errdefs.AppError
+			var appErr *problem.AppError
 			Expect(errors.As(err, &appErr)).To(BeTrue())
 			Expect(appErr.Status).To(Equal(http.StatusTooManyRequests))
 		})

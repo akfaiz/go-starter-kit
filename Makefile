@@ -4,8 +4,8 @@ BIN := bin/$(APP)
 
 GOCACHE_DIR := $(CURDIR)/.gocache
 GINKGO := ginkgo
-SKIP_PACKAGES := internal/mocks,db/migrations,cmd,test/e2e
-TEST_EXCLUDE := /internal/mocks$$|/db/migrations$$|/cmd($$|/)|/test/e2e$$
+SKIP_PACKAGES := test/mocks,db/migrations,cmd,test/e2e
+TEST_EXCLUDE := /test/mocks$$|/db/migrations$$|/cmd($$|/)|/test/e2e$$
 UNIT_TEST_PKGS := $(shell GOCACHE="$(GOCACHE_DIR)" go list ./... | grep -Ev '$(TEST_EXCLUDE)')
 COVER_PKGS := $(shell GOCACHE="$(GOCACHE_DIR)" go list ./... | grep -Ev '$(TEST_EXCLUDE)' | tr '\n' ',' | sed 's/,$$//')
 COVDATA_DIR := .covdata

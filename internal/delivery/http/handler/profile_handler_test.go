@@ -8,7 +8,7 @@ import (
 
 	"github.com/akfaiz/go-starter-kit/internal/delivery/http/handler"
 	"github.com/akfaiz/go-starter-kit/internal/domain"
-	"github.com/akfaiz/go-starter-kit/pkg/errdefs"
+	"github.com/akfaiz/go-starter-kit/pkg/problem"
 	"github.com/akfaiz/go-starter-kit/test/mocks"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -39,7 +39,7 @@ var _ = Describe("ProfileHandler", Label("unit", "handler"), func() {
 			err := h.GetProfile(c)
 			Expect(err).To(HaveOccurred())
 
-			var appErr *errdefs.AppError
+			var appErr *problem.AppError
 			Expect(errors.As(err, &appErr)).To(BeTrue())
 			Expect(appErr.Status).To(Equal(http.StatusUnauthorized))
 		})

@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/akfaiz/go-starter-kit/internal/domain"
-	"github.com/akfaiz/go-starter-kit/pkg/errdefs"
+	"github.com/akfaiz/go-starter-kit/pkg/problem"
 	"github.com/labstack/echo/v5"
 )
 
@@ -18,14 +18,14 @@ func New(jwtManager domain.JWTManager) echo.MiddlewareFunc {
 		return func(c *echo.Context) error {
 			token := c.Request().Header.Get("Authorization")
 			if token == "" {
-				return errdefs.ErrUnauthorized("missing Authorization header")
+				return problem.ErrUnauthorized("missing Authorization header")
 			}
 			if len(token) < 7 || token[:7] != "Bearer " {
-				return errdefs.ErrUnauthorized("Authorization header must start with 'Bearer '")
+				return problem.ErrUnauthorized("Authorization header must start with 'Bearer '")
 			}
 			token = token[7:]
 			if token == "" {
-				return errdefs.ErrUnauthorized("missing token in Authorization header")
+				return problem.ErrUnauthorized("missing token in Authorization header")
 			}
 
 			claims, err := jwtManager.VerifyAccessToken(token)
@@ -47,14 +47,14 @@ func NewWithSession(jwtManager domain.JWTManager, sessionRepo domain.SessionRepo
 		return func(c *echo.Context) error {
 			token := c.Request().Header.Get("Authorization")
 			if token == "" {
-				return errdefs.ErrUnauthorized("missing Authorization header")
+				return problem.ErrUnauthorized("missing Authorization header")
 			}
 			if len(token) < 7 || token[:7] != "Bearer " {
-				return errdefs.ErrUnauthorized("Authorization header must start with 'Bearer '")
+				return problem.ErrUnauthorized("Authorization header must start with 'Bearer '")
 			}
 			token = token[7:]
 			if token == "" {
-				return errdefs.ErrUnauthorized("missing token in Authorization header")
+				return problem.ErrUnauthorized("missing token in Authorization header")
 			}
 
 			claims, err := jwtManager.VerifyAccessToken(token)
@@ -64,10 +64,10 @@ func NewWithSession(jwtManager domain.JWTManager, sessionRepo domain.SessionRepo
 
 			storedToken, err := sessionRepo.GetAccessToken(c.Request().Context(), claims.ID)
 			if err != nil {
-				return errdefs.ErrUnauthorized("invalid session")
+				return problem.ErrUnauthorized("invalid session")
 			}
 			if storedToken != token {
-				return errdefs.ErrUnauthorized("invalid session")
+				return problem.ErrUnauthorized("invalid session")
 			}
 
 			c.Set(userKey, claims)

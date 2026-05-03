@@ -1,4 +1,4 @@
-package errdefs
+package problem
 
 import (
 	"fmt"
@@ -53,6 +53,7 @@ type AppError struct {
 	cause error
 }
 
+// AppErrorFunc is a function type that generates an AppError with optional details.
 type AppErrorFunc func(details ...string) *AppError
 
 // register creates a new AppErrorFunc with the provided title, type, status, and optional detail.
@@ -83,6 +84,7 @@ func New(title, typeName string, status int, detail ...string) *AppError {
 	}
 }
 
+// Error implements the error interface for AppError, returning a string representation of the error.
 func (e *AppError) Error() string {
 	if e.Detail != "" {
 		return fmt.Sprintf("%s: %s", e.Title, e.Detail)
@@ -95,26 +97,31 @@ func (e *AppError) Unwrap() error {
 	return e.cause
 }
 
+// WithDetail sets the Detail field of the AppError and returns the modified error for chaining.
 func (e *AppError) WithDetail(detail string) *AppError {
 	e.Detail = detail
 	return e
 }
 
+// WithErrors sets the Errors field of the AppError and returns the modified error for chaining.
 func (e *AppError) WithErrors(errors any) *AppError {
 	e.Errors = errors
 	return e
 }
 
+// WithCause sets the cause of the AppError and returns the modified error for chaining.
 func (e *AppError) WithCause(cause error) *AppError {
 	e.cause = cause
 	return e
 }
 
+// WithInstance sets the Instance field of the AppError and returns the modified error for chaining.
 func (e *AppError) WithInstance(instance string) *AppError {
 	e.Instance = instance
 	return e
 }
 
+// Clone creates a copy of the AppError, allowing you to modify the copy without affecting the original error.
 func (e *AppError) Clone() *AppError {
 	return &AppError{
 		Type:     e.Type,
@@ -127,6 +134,7 @@ func (e *AppError) Clone() *AppError {
 	}
 }
 
+// Wrap takes a standard error and an AppErrorFunc, and returns a new AppError that wraps the original error with a stack trace.
 func Wrap(err error, appErr AppErrorFunc) *AppError {
 	if err == nil || appErr == nil {
 		return nil

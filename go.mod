@@ -8,6 +8,7 @@ require (
 	github.com/akfaiz/go-mailgen v0.1.4
 	github.com/akfaiz/migris v0.4.1
 	github.com/akfaiz/migris/extra/migriscli v0.4.1
+	github.com/alicebob/miniredis/v2 v2.37.0
 	github.com/cockroachdb/errors v1.12.0
 	github.com/gavv/httpexpect/v2 v2.17.0
 	github.com/go-playground/locales v0.14.1
@@ -158,6 +159,7 @@ require (
 	github.com/yalp/jsonpath v0.0.0-20180802001716-5cc68e5049a0 // indirect
 	github.com/yudai/gojsondiff v1.0.0 // indirect
 	github.com/yudai/golcs v0.0.0-20170316035057-ecda9a501e82 // indirect
+	github.com/yuin/gopher-lua v1.1.2 // indirect
 	github.com/yusufpapurcu/wmi v1.2.4 // indirect
 	go.opentelemetry.io/auto/sdk v1.2.1 // indirect
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.68.0 // indirect

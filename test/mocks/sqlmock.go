@@ -1,15 +1,14 @@
 package mocks
 
 import (
-	"testing"
-
 	"github.com/DATA-DOG/go-sqlmock"
+	"github.com/onsi/ginkgo/v2"
 	"github.com/stretchr/testify/require"
 	"github.com/uptrace/bun"
 	"github.com/uptrace/bun/dialect/pgdialect"
 )
 
-func NewMockDB(t *testing.T) (*bun.DB, sqlmock.Sqlmock, func()) {
+func NewMockDB(t ginkgo.GinkgoTInterface) (*bun.DB, sqlmock.Sqlmock, func()) {
 	t.Helper()
 
 	sqldb, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherRegexp))

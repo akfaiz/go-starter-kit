@@ -7,7 +7,7 @@ import (
 	"github.com/akfaiz/go-starter-kit/internal/delivery/http/handler/dto"
 	"github.com/akfaiz/go-starter-kit/internal/domain"
 	"github.com/akfaiz/go-starter-kit/internal/security"
-	"github.com/akfaiz/go-starter-kit/pkg/errdefs"
+	"github.com/akfaiz/go-starter-kit/pkg/problem"
 	"github.com/akfaiz/go-starter-kit/pkg/validator"
 	"github.com/invopop/ctxi18n/i18n"
 	"github.com/labstack/echo/v5"
@@ -169,5 +169,5 @@ func tooManyRequests(c *echo.Context, retryAfter int) error {
 	if retryAfter > 0 {
 		c.Response().Header().Set("Retry-After", strconv.Itoa(retryAfter))
 	}
-	return errdefs.ErrTooManyRequests("Too many authentication attempts. Please try again later.")
+	return problem.ErrTooManyRequests("Too many authentication attempts. Please try again later.")
 }

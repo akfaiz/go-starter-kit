@@ -1,4 +1,4 @@
-package security
+package security_test
 
 import (
 	"context"
@@ -6,12 +6,13 @@ import (
 	"time"
 
 	"github.com/akfaiz/go-starter-kit/internal/config"
+	"github.com/akfaiz/go-starter-kit/internal/security"
 	"github.com/redis/go-redis/v9"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func newTestGuard(rdb *redis.Client) *authGuard {
+func newTestGuard(rdb *redis.Client) security.AuthGuard {
 	cfg := config.Config{
 		Redis: config.Redis{Prefix: "test"},
 		RateLimit: config.RateLimit{
@@ -23,12 +24,7 @@ func newTestGuard(rdb *redis.Client) *authGuard {
 			RefreshWindow:         time.Minute,
 		},
 	}
-	return NewAuthGuard(cfg, rdb).(*authGuard)
-}
-
-func TestKey(t *testing.T) {
-	g := newTestGuard(nil)
-	assert.Equal(t, "test:auth:login:ip:127.0.0.1", g.key("auth", "login", "ip", "127.0.0.1"))
+	return security.NewAuthGuard(cfg, rdb)
 }
 
 func TestLoginPathsIgnoreEmptyEmail(t *testing.T) {
