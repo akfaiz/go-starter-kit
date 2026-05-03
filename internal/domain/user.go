@@ -13,12 +13,14 @@ type UserRepository interface {
 	Create(ctx context.Context, user *User) error
 	FindByEmail(ctx context.Context, email string) (*User, error)
 	FindByID(ctx context.Context, id int64) (*User, error)
+	FindAll(ctx context.Context, params FindAllParams) (*Paginated[*User], error)
 	Update(ctx context.Context, id int64, user *UserUpdate) error
 	Delete(ctx context.Context, id int64) error
 }
 
 type UserService interface {
 	FindByID(ctx context.Context, id int64) (*User, error)
+	FindAll(ctx context.Context, params FindAllParams) (*Paginated[*User], error)
 	UpdateProfile(ctx context.Context, id int64, user *User) error
 	ChangePassword(ctx context.Context, id int64, currentPassword, newPassword string) error
 	Delete(ctx context.Context, id int64, password string) error

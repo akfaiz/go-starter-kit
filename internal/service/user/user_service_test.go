@@ -81,6 +81,49 @@ var _ = Describe("User Service", Label("unit", "usecase"), func() {
 		})
 	})
 
+	Describe("FindAll", func() {
+		var (
+			params    domain.FindAllParams
+			paginated *domain.Paginated[*domain.User]
+		)
+		BeforeEach(func() {
+			params = domain.FindAllParams{
+				Page:  1,
+				Limit: 10,
+			}
+		})
+		JustBeforeEach(func() {
+			paginated, actErr = svc.FindAll(ctx, params)
+		})
+		When("successful", func() {
+			BeforeEach(func() {
+				userRepoMock.EXPECT().FindAll(gomock.Any(), params).Return(&domain.Paginated[*domain.User]{
+					Items: []*domain.User{{ID: 1, Name: "John Doe"}},
+					Pagination: domain.Pagination{
+						Page:       params.Page,
+						Limit:      params.Limit,
+						TotalData:  1,
+						TotalPages: 1,
+					},
+				}, nil)
+			})
+			It("should return the users and total count", func() {
+				Expect(actErr).To(BeNil())
+				Expect(paginated.Items).To(HaveLen(1))
+				Expect(paginated.Pagination.TotalData).To(Equal(int64(1)))
+				Expect(paginated.Pagination.TotalPages).To(Equal(1))
+			})
+		})
+		When("repository returns an error", func() {
+			BeforeEach(func() {
+				userRepoMock.EXPECT().FindAll(gomock.Any(), params).Return(nil, errors.New("db error"))
+			})
+			It("bubbles the error", func() {
+				Expect(actErr).To(HaveOccurred())
+			})
+		})
+	})
+
 	Describe("UpdateProfile", func() {
 		var (
 			uid       int64

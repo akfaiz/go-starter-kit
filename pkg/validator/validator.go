@@ -26,10 +26,12 @@ func New() *Validate {
 		if label := fld.Tag.Get("label"); label != "" {
 			return label
 		}
-		if jsonName := fld.Tag.Get("json"); jsonName != "" {
-			name := strings.Split(jsonName, ",")[0]
-			if name != "" && name != "-" {
-				return name
+		for _, tag := range []string{"json", "query", "param", "form"} {
+			if name := fld.Tag.Get(tag); name != "" {
+				name = strings.Split(name, ",")[0]
+				if name != "" && name != "-" {
+					return name
+				}
 			}
 		}
 		return fld.Name
@@ -147,8 +149,18 @@ func resolveJSONNameAndType(current reflect.Type, name, indexSuffix string) (str
 		return name, current
 	}
 
-	jsonName := strings.Split(field.Tag.Get("json"), ",")[0]
-	if jsonName == "" || jsonName == "-" {
+	jsonName := ""
+	for _, tag := range []string{"json", "query", "param", "form"} {
+		if name := field.Tag.Get(tag); name != "" {
+			jsonName = strings.Split(name, ",")[0]
+			if jsonName != "" && jsonName != "-" {
+				break
+			}
+			jsonName = ""
+		}
+	}
+
+	if jsonName == "" {
 		jsonName = name
 	}
 

@@ -35,6 +35,13 @@ func (s *service) FindByID(ctx context.Context, id int64) (*domain.User, error) 
 	return s.userRepo.FindByID(ctx, id)
 }
 
+func (s *service) FindAll(ctx context.Context, params domain.FindAllParams) (*domain.Paginated[*domain.User], error) {
+	ctx, span := telemetry.StartSpan(ctx, tracer)
+	defer span.End()
+
+	return s.userRepo.FindAll(ctx, params)
+}
+
 func (s *service) UpdateProfile(ctx context.Context, id int64, user *domain.User) error {
 	ctx, span := telemetry.StartSpan(ctx, tracer)
 	defer span.End()

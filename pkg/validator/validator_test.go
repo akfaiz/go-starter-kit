@@ -45,6 +45,22 @@ type phone struct {
 	Number string `json:"number" validate:"required" label:"Number"`
 }
 
+type queryRequest struct {
+	Page int `query:"page" validate:"required,min=1" label:"Page"`
+}
+
+type paramRequest struct {
+	ID string `param:"id" validate:"required" label:"ID"`
+}
+
+type formRequest struct {
+	Name string `form:"name" validate:"required" label:"Name"`
+}
+
+type priorityRequest struct {
+	Field string `json:"json_field" query:"query_field" validate:"required" label:"Label Field"`
+}
+
 func TestValidate_Success(t *testing.T) {
 	v := validator.New()
 	req := &registerRequest{
@@ -154,6 +170,57 @@ func TestValidate_ArrayStructPathUsesJSONKeysWithIndex(t *testing.T) {
 
 	assert.Equal(t, "phones[0].number", vErr.First().Field)
 	assert.Equal(t, "Number is a required field", vErr.First().Message)
+}
+
+func TestValidate_SupportsQueryTags(t *testing.T) {
+	v := validator.New()
+	req := &queryRequest{Page: 0}
+
+	err := v.Validate(req)
+	require.Error(t, err)
+
+	var vErr *validator.ValidationError
+	require.ErrorAs(t, err, &vErr)
+	assert.Equal(t, "page", vErr.First().Field)
+	assert.Equal(t, "Page is a required field", vErr.First().Message)
+}
+
+func TestValidate_SupportsParamTags(t *testing.T) {
+	v := validator.New()
+	req := &paramRequest{ID: ""}
+
+	err := v.Validate(req)
+	require.Error(t, err)
+
+	var vErr *validator.ValidationError
+	require.ErrorAs(t, err, &vErr)
+	assert.Equal(t, "id", vErr.First().Field)
+	assert.Equal(t, "ID is a required field", vErr.First().Message)
+}
+
+func TestValidate_SupportsFormTags(t *testing.T) {
+	v := validator.New()
+	req := &formRequest{Name: ""}
+
+	err := v.Validate(req)
+	require.Error(t, err)
+
+	var vErr *validator.ValidationError
+	require.ErrorAs(t, err, &vErr)
+	assert.Equal(t, "name", vErr.First().Field)
+	assert.Equal(t, "Name is a required field", vErr.First().Message)
+}
+
+func TestValidate_TagPriority(t *testing.T) {
+	v := validator.New()
+	req := &priorityRequest{Field: ""}
+
+	err := v.Validate(req)
+	require.Error(t, err)
+
+	var vErr *validator.ValidationError
+	require.ErrorAs(t, err, &vErr)
+	assert.Equal(t, "json_field", vErr.First().Field)
 }
 
 func TestValidate_IndonesianLocale(t *testing.T) {

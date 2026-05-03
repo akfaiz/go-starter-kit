@@ -75,6 +75,66 @@ func (r *repository) FindByID(ctx context.Context, id int64) (*domain.User, erro
 	return user.ToDomain(), nil
 }
 
+func (r *repository) FindAll(
+	ctx context.Context,
+	params domain.FindAllParams,
+) (*domain.Paginated[*domain.User], error) {
+	ctx, span := telemetry.StartSpan(ctx, tracer)
+	defer span.End()
+
+	users := make([]*model.User, 0)
+	query := r.db.NewSelect().Model(&users)
+
+	if params.Search != "" {
+		query = query.Where("name ILIKE ? OR email ILIKE ?", "%"+params.Search+"%", "%"+params.Search+"%")
+	}
+
+	query = applySort(query, params)
+
+	count, err := query.
+		Limit(params.Limit).
+		Offset((params.Page - 1) * params.Limit).
+		ScanAndCount(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	domainUsers := make([]*domain.User, len(users))
+	for i, u := range users {
+		domainUsers[i] = u.ToDomain()
+	}
+
+	return &domain.Paginated[*domain.User]{
+		Items:      domainUsers,
+		Pagination: domain.NewPagination(params.Page, params.Limit, int64(count)),
+	}, nil
+}
+
+func applySort(query *bun.SelectQuery, params domain.FindAllParams) *bun.SelectQuery {
+	if params.Sort == "" {
+		return query.Order("id ASC")
+	}
+
+	allowedSortFields := map[string]string{
+		"id":         "id",
+		"name":       "name",
+		"email":      "email",
+		"created_at": "created_at",
+	}
+
+	dbField, ok := allowedSortFields[params.Sort]
+	if !ok {
+		return query.Order("id ASC")
+	}
+
+	order := "ASC"
+	if strings.ToUpper(params.Order) == "DESC" {
+		order = "DESC"
+	}
+
+	return query.Order(dbField + " " + order)
+}
+
 func (r *repository) Update(ctx context.Context, id int64, data *domain.UserUpdate) error {
 	ctx, span := telemetry.StartSpan(ctx, tracer)
 	defer span.End()

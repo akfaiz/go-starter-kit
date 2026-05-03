@@ -267,6 +267,89 @@ var _ = Describe("User Repository", Label("unit", "repository"), func() {
 		})
 	})
 
+	Describe("FindAll", func() {
+		var (
+			params    domain.FindAllParams
+			paginated *domain.Paginated[*domain.User]
+			err       error
+		)
+
+		BeforeEach(func() {
+			params = domain.FindAllParams{
+				Page:  1,
+				Limit: 10,
+			}
+		})
+
+		JustBeforeEach(func() {
+			paginated, err = r.FindAll(ctx, params)
+		})
+
+		When("successful", func() {
+			BeforeEach(func() {
+				now := time.Now()
+				mock.ExpectQuery(`SELECT count\(\*\) FROM "users" AS "user"`).
+					WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(1))
+				mock.ExpectQuery(`SELECT .* FROM "users" AS "user" ORDER BY "id" ASC LIMIT 10`).
+					WillReturnRows(sqlmock.NewRows([]string{"id", "name", "email", "password", "email_verified_at", "created_at", "updated_at"}).
+						AddRow(1, "John Doe", "john@example.com", "hashed-password", nil, now, now))
+			})
+
+			It("should return the users and total count", func() {
+				Expect(err).To(BeNil())
+				Expect(paginated.Items).To(HaveLen(1))
+				Expect(paginated.Pagination.TotalData).To(Equal(int64(1)))
+				Expect(paginated.Pagination.TotalPages).To(Equal(1))
+			})
+		})
+
+		When("successful with search", func() {
+			BeforeEach(func() {
+				params.Search = "john"
+				now := time.Now()
+				mock.ExpectQuery(`SELECT count\(\*\) FROM "users" AS "user" WHERE \(name ILIKE '%john%' OR email ILIKE '%john%'\)`).
+					WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(1))
+				mock.ExpectQuery(`SELECT .* FROM "users" AS "user" WHERE \(name ILIKE '%john%' OR email ILIKE '%john%'\) ORDER BY "id" ASC LIMIT 10`).
+					WillReturnRows(sqlmock.NewRows([]string{"id", "name", "email", "password", "email_verified_at", "created_at", "updated_at"}).
+						AddRow(1, "John Doe", "john@example.com", "hashed-password", nil, now, now))
+			})
+
+			It("should return the filtered users", func() {
+				Expect(err).To(BeNil())
+				Expect(paginated.Items).To(HaveLen(1))
+			})
+		})
+
+		When("successful with sort", func() {
+			BeforeEach(func() {
+				params.Sort = "name"
+				params.Order = "desc"
+				now := time.Now()
+				mock.ExpectQuery(`SELECT count\(\*\) FROM "users" AS "user"`).
+					WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(1))
+				mock.ExpectQuery(`SELECT .* FROM "users" AS "user" ORDER BY "name" DESC LIMIT 10`).
+					WillReturnRows(sqlmock.NewRows([]string{"id", "name", "email", "password", "email_verified_at", "created_at", "updated_at"}).
+						AddRow(1, "John Doe", "john@example.com", "hashed-password", nil, now, now))
+			})
+
+			It("should return the sorted users", func() {
+				Expect(err).To(BeNil())
+				Expect(paginated.Items).To(HaveLen(1))
+			})
+		})
+
+		When("database error occurs", func() {
+			BeforeEach(func() {
+				mock.ExpectQuery(`SELECT count\(\*\) FROM "users" AS "user"`).
+					WillReturnError(sql.ErrConnDone)
+			})
+
+			It("should return error", func() {
+				Expect(err).NotTo(BeNil())
+			})
+		})
+	})
+
 	Describe("Update", func() {
 		var (
 			id         int64

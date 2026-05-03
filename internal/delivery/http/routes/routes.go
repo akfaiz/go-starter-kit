@@ -22,6 +22,7 @@ type RouteConfig struct {
 
 	AuthHandler        *handler.AuthHandler
 	ProfileHandler     *handler.ProfileHandler
+	UserHandler        *handler.UserHandler
 	HealthCheckHandler *handler.HealthCheckHandler
 }
 
@@ -60,17 +61,17 @@ func Register(rc RouteConfig) {
 	auth.POST("/forgot-password/send-otp", rc.AuthHandler.SendForgotPasswordOTP).With(
 		option.Summary("Send forgot password OTP"),
 		option.Request(new(dto.SendForgotPasswordOTPRequest)),
-		option.Response(200, new(dto.Response[any])),
+		option.Response(200, new(dto.GenericResponse)),
 	)
 	auth.POST("/forgot-password/verify-otp", rc.AuthHandler.VerifyForgotPasswordOTP).With(
 		option.Summary("Verify forgot password OTP"),
 		option.Request(new(dto.VerifyForgotPasswordOTPRequest)),
-		option.Response(200, new(dto.Response[any])),
+		option.Response(200, new(dto.GenericResponse)),
 	)
 	auth.POST("/forgot-password/reset-password", rc.AuthHandler.ResetPasswordWithOTP).With(
 		option.Summary("Reset password with OTP"),
 		option.Request(new(dto.ResetPasswordWithOTPRequest)),
-		option.Response(200, new(dto.Response[any])),
+		option.Response(200, new(dto.GenericResponse)),
 	)
 
 	profile := v1.Group("/profile", rc.AuthMiddleware).With(
@@ -89,6 +90,16 @@ func Register(rc RouteConfig) {
 	profile.PUT("/password", rc.ProfileHandler.ChangePassword).With(
 		option.Summary("Update password"),
 		option.Request(new(dto.ChangePasswordRequest)),
-		option.Response(200, new(dto.Response[any])),
+		option.Response(200, new(dto.GenericResponse)),
+	)
+
+	users := v1.Group("/users", rc.AuthMiddleware).With(
+		option.GroupTags("Users"),
+		option.GroupSecurity("bearerAuth"),
+	)
+	users.GET("", rc.UserHandler.ListUsers).With(
+		option.Summary("List users"),
+		option.Request(new(dto.UserListRequest)),
+		option.Response(200, new(dto.PaginatedResponse[*dto.UserResponse])),
 	)
 }
