@@ -228,7 +228,9 @@ var _ = Describe("User Service", Label("unit", "usecase"), func() {
 					ID:       1,
 					Password: "hashedpassword",
 				}, nil)
-				passwordHasherMock.EXPECT().Verify(currentPassword, "hashedpassword").Return(false, errors.New("bcrypt error"))
+				passwordHasherMock.EXPECT().
+					Verify(currentPassword, "hashedpassword").
+					Return(false, errors.New("bcrypt error"))
 			})
 			It("bubbles the error", func() {
 				Expect(actErr).To(HaveOccurred())

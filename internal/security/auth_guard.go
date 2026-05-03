@@ -70,7 +70,11 @@ func (g *authGuard) OnLoginFailure(ctx context.Context, ip, email string) (*Rate
 		if err := g.rdb.Set(ctx, lockKey, 1, g.cfg.LoginLockoutDuration).Err(); err != nil {
 			return nil, err
 		}
-		return &RateLimitResult{Limited: true, RetryAfter: int(g.cfg.LoginLockoutDuration.Seconds()), LockoutActive: true}, nil
+		return &RateLimitResult{
+			Limited:       true,
+			RetryAfter:    int(g.cfg.LoginLockoutDuration.Seconds()),
+			LockoutActive: true,
+		}, nil
 	}
 	return g.CheckLogin(ctx, ip, email)
 }
@@ -91,7 +95,12 @@ func (g *authGuard) CheckRefresh(ctx context.Context, ip string) (*RateLimitResu
 	return g.checkWindowLimit(ctx, g.key("auth:refresh:ip", ip), g.cfg.RefreshAttemptsPerIP, g.cfg.RefreshWindow)
 }
 
-func (g *authGuard) checkWindowLimit(ctx context.Context, key string, limit int64, window time.Duration) (*RateLimitResult, error) {
+func (g *authGuard) checkWindowLimit(
+	ctx context.Context,
+	key string,
+	limit int64,
+	window time.Duration,
+) (*RateLimitResult, error) {
 	pipe := g.rdb.TxPipeline()
 	countCmd := pipe.Incr(ctx, key)
 	ttlCmd := pipe.TTL(ctx, key)

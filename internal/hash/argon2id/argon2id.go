@@ -5,6 +5,7 @@ import (
 	"crypto/subtle"
 	"encoding/base64"
 	"fmt"
+	"math"
 	"strings"
 
 	"github.com/akfaiz/go-starter-kit/internal/domain"
@@ -51,16 +52,16 @@ func (h *argon2idHasher) Hash(password string) (string, error) {
 	return encodedHash, nil
 }
 
-func (h *argon2idHasher) Verify(password, passwordHashed string) (valid bool, err error) {
+func (h *argon2idHasher) Verify(password, passwordHashed string) (bool, error) {
 	parts := strings.Split(passwordHashed, "$")
 	if len(parts) != 6 {
 		return false, errors.New("invalid password hash format")
 	}
 
 	var version int
-	_, err = fmt.Sscanf(parts[2], "v=%d", &version)
+	_, err := fmt.Sscanf(parts[2], "v=%d", &version)
 	if err != nil {
-		return
+		return false, err
 	}
 	if version != argon2.Version {
 		return false, errors.New("unsupported argon2 version")
@@ -82,6 +83,10 @@ func (h *argon2idHasher) Verify(password, passwordHashed string) (valid bool, er
 	if err != nil {
 		return false, errors.Wrap(err, "failed to decode hash")
 	}
+	if uint64(len(hash)) > math.MaxUint32 {
+		return false, errors.New("hash length overflows uint32")
+	}
+	//nolint:gosec // len(hash) comes from decoded digest; bounded by practical hash size.
 	keyLength := uint32(len(hash))
 
 	hashedPassword := argon2.IDKey([]byte(password), salt, iteration, memory, parallelism, keyLength)

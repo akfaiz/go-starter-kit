@@ -26,7 +26,7 @@ import (
 var Command = &cli.Command{
 	Name:  "serve",
 	Usage: "Start the API server",
-	Action: func(ctx context.Context, c *cli.Command) error {
+	Action: func(_ context.Context, _ *cli.Command) error {
 		app, err := newApp()
 		if err != nil {
 			return err
@@ -72,17 +72,21 @@ func appOptions(cfg config.Config) []fx.Option {
 
 func httpServerLifecycle(lc fx.Lifecycle, e *echo.Echo, cfg config.Config) {
 	addr := fmt.Sprintf(":%d", cfg.Server.Port)
-	srv := &http.Server{Addr: addr, Handler: e}
+	srv := &http.Server{
+		Addr:              addr,
+		Handler:           e,
+		ReadHeaderTimeout: cfg.Server.ReadHeaderTimeout,
+	}
 
 	lc.Append(fx.Hook{
 		OnStart: func(ctx context.Context) error {
 			go func() {
 				if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-					slog.Error("http server stopped unexpectedly", "error", err)
+					slog.ErrorContext(ctx, "http server stopped unexpectedly", "error", err)
 				}
 			}()
-			slog.Info("server started", "url", fmt.Sprintf("http://localhost:%d", cfg.Server.Port))
-			slog.Info("openapi docs", "url", fmt.Sprintf("http://localhost:%d/docs", cfg.Server.Port))
+			slog.InfoContext(ctx, "server started", "url", fmt.Sprintf("http://localhost:%d", cfg.Server.Port))
+			slog.InfoContext(ctx, "openapi docs", "url", fmt.Sprintf("http://localhost:%d/docs", cfg.Server.Port))
 			return nil
 		},
 		OnStop: func(ctx context.Context) error {

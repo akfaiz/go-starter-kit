@@ -79,7 +79,12 @@ func (h *ProfileHandler) ChangePassword(c *echo.Context) error {
 		return errdefs.ErrUnauthorized()
 	}
 
-	if err := h.userService.ChangePassword(c.Request().Context(), claims.ID, req.CurrentPassword, req.NewPassword); err != nil {
+	if err := h.userService.ChangePassword(
+		c.Request().Context(),
+		claims.ID,
+		req.CurrentPassword,
+		req.NewPassword,
+	); err != nil {
 		return err
 	}
 

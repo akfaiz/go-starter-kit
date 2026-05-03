@@ -40,15 +40,9 @@ func (h *AuthHandler) Login(c *echo.Context) error {
 
 	pairToken, err := h.authService.Login(c.Request().Context(), req.Email, req.Password)
 	if err != nil {
-		var vErr *validator.ValidationError
-		if errors.As(err, &vErr) && vErr.First().Field == "email" {
-			limitResult, lErr := h.authGuard.OnLoginFailure(c.Request().Context(), c.RealIP(), req.Email)
-			if lErr != nil {
-				return lErr
-			}
-			if limitResult.Limited {
-				return tooManyRequests(c, limitResult.RetryAfter)
-			}
+		blockErr := h.handleLoginFailure(c, req.Email, err)
+		if blockErr != nil {
+			return blockErr
 		}
 		return err
 	}
@@ -58,6 +52,23 @@ func (h *AuthHandler) Login(c *echo.Context) error {
 
 	res := dto.NewResponse(200, dto.NewTokenResponse(pairToken), "Login successful")
 	return c.JSON(res.Status, res)
+}
+
+func (h *AuthHandler) handleLoginFailure(c *echo.Context, email string, loginErr error) error {
+	var vErr *validator.ValidationError
+	if !errors.As(loginErr, &vErr) || vErr.First().Field != "email" {
+		return nil
+	}
+
+	limitResult, err := h.authGuard.OnLoginFailure(c.Request().Context(), c.RealIP(), email)
+	if err != nil {
+		return err
+	}
+	if limitResult.Limited {
+		return tooManyRequests(c, limitResult.RetryAfter)
+	}
+
+	return nil
 }
 
 func (h *AuthHandler) Register(c *echo.Context) error {

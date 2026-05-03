@@ -68,15 +68,21 @@ var _ = Describe("ProfileHandler", Label("unit", "handler"), func() {
 			c, rec := newJSONContext(http.MethodPut, "/profile", `{"name":"Jane","email":"jane@example.com"}`)
 			c.Set("user", &domain.JWTClaims{ID: 1})
 
-			userService.EXPECT().FindByID(gomock.Any(), int64(1)).Return(&domain.User{ID: 1, Name: "John", Email: "john@example.com"}, nil)
-			userService.EXPECT().UpdateProfile(gomock.Any(), int64(1), gomock.AssignableToTypeOf(&domain.User{})).DoAndReturn(
-				func(_ any, _ int64, user *domain.User) error {
-					Expect(user.Name).To(Equal("Jane"))
-					Expect(user.Email).To(Equal("jane@example.com"))
-					return nil
-				},
-			)
-			userService.EXPECT().FindByID(gomock.Any(), int64(1)).Return(&domain.User{ID: 1, Name: "Jane", Email: "jane@example.com"}, nil)
+			userService.EXPECT().
+				FindByID(gomock.Any(), int64(1)).
+				Return(&domain.User{ID: 1, Name: "John", Email: "john@example.com"}, nil)
+			userService.EXPECT().
+				UpdateProfile(gomock.Any(), int64(1), gomock.AssignableToTypeOf(&domain.User{})).
+				DoAndReturn(
+					func(_ any, _ int64, user *domain.User) error {
+						Expect(user.Name).To(Equal("Jane"))
+						Expect(user.Email).To(Equal("jane@example.com"))
+						return nil
+					},
+				)
+			userService.EXPECT().
+				FindByID(gomock.Any(), int64(1)).
+				Return(&domain.User{ID: 1, Name: "Jane", Email: "jane@example.com"}, nil)
 
 			err := h.UpdateProfile(c)
 			Expect(err).NotTo(HaveOccurred())
@@ -86,7 +92,11 @@ var _ = Describe("ProfileHandler", Label("unit", "handler"), func() {
 
 	Describe("ChangePassword", func() {
 		It("changes password and returns success message", func() {
-			c, rec := newJSONContext(http.MethodPatch, "/profile/password", `{"current_password":"oldpass123","new_password":"newpass123","new_password_confirmation":"newpass123"}`)
+			c, rec := newJSONContext(
+				http.MethodPatch,
+				"/profile/password",
+				`{"current_password":"oldpass123","new_password":"newpass123","new_password_confirmation":"newpass123"}`,
+			)
 			c.Set("user", &domain.JWTClaims{ID: 1})
 
 			userService.EXPECT().ChangePassword(gomock.Any(), int64(1), "oldpass123", "newpass123").Return(nil)

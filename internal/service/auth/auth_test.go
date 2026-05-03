@@ -22,6 +22,7 @@ var _ = Describe("Auth", Label("unit", "usecase"), func() {
 	var (
 		userRepoMock      *mocks.MockUserRepository
 		userTokenRepoMock *mocks.MockUserTokenRepository
+		sessionRepoMock   *mocks.MockSessionRepository
 		hasherMock        *mocks.MockPasswordHasher
 		jwtManagerMock    *mocks.MockJWTManager
 		mailerMock        *mocks.MockMailer
@@ -34,17 +35,27 @@ var _ = Describe("Auth", Label("unit", "usecase"), func() {
 		ctrl := gomock.NewController(GinkgoT())
 		userRepoMock = mocks.NewMockUserRepository(ctrl)
 		userTokenRepoMock = mocks.NewMockUserTokenRepository(ctrl)
+		sessionRepoMock = mocks.NewMockSessionRepository(ctrl)
 		hasherMock = mocks.NewMockPasswordHasher(ctrl)
 		jwtManagerMock = mocks.NewMockJWTManager(ctrl)
 		mailerMock = mocks.NewMockMailer(ctrl)
 		cfg = config.Config{
 			Auth: config.Auth{
 				JWT: config.JWT{
+					AccessExpires:  15 * time.Minute,
 					RefreshExpires: 24 * time.Hour,
 				},
 			},
 		}
-		svc = auth.NewService(cfg, userRepoMock, userTokenRepoMock, hasherMock, jwtManagerMock, mailerMock)
+		svc = auth.NewService(
+			cfg,
+			userRepoMock,
+			userTokenRepoMock,
+			sessionRepoMock,
+			hasherMock,
+			jwtManagerMock,
+			mailerMock,
+		)
 
 		ctx = context.Background()
 		ctx, _ = ctxi18n.WithLocale(ctx, "en")
@@ -94,15 +105,14 @@ var _ = Describe("Auth", Label("unit", "usecase"), func() {
 						Name:  user.Name,
 						Email: user.Email,
 					}).Return(token, nil)
-					hasherMock.EXPECT().Hash("refresh.token.here").Return("hashed-refresh-token", nil)
-					userTokenRepoMock.EXPECT().Create(gomock.Any(), gomock.AssignableToTypeOf(&domain.UserToken{})).DoAndReturn(
-						func(_ context.Context, t *domain.UserToken) error {
-							Expect(t.UserID).To(Equal(user.ID))
-							Expect(t.TokenType).To(Equal(domain.TokenTypeRefreshToken))
-							Expect(t.Token).To(Equal("hashed-refresh-token"))
-							return nil
-						},
-					)
+					sessionRepoMock.EXPECT().SavePairToken(
+						gomock.Any(),
+						user.ID,
+						"access.token.here",
+						"refresh.token.here",
+						15*time.Minute,
+						24*time.Hour,
+					).Return(nil)
 				},
 				check: func(token *domain.PairToken, err error) {
 					Expect(err).NotTo(HaveOccurred())
@@ -117,7 +127,9 @@ var _ = Describe("Auth", Label("unit", "usecase"), func() {
 					password: "password123",
 				},
 				arrange: func() {
-					userRepoMock.EXPECT().FindByEmail(gomock.Any(), "john.doe@example.com").Return(nil, domain.ErrResourceNotFound)
+					userRepoMock.EXPECT().
+						FindByEmail(gomock.Any(), "john.doe@example.com").
+						Return(nil, domain.ErrResourceNotFound)
 				},
 				check: func(token *domain.PairToken, err error) {
 					Expect(err).To(HaveOccurred())
@@ -135,27 +147,22 @@ var _ = Describe("Auth", Label("unit", "usecase"), func() {
 		It("should rotate refresh token successfully", func() {
 			user := &domain.User{ID: 1, Name: "John Doe", Email: "john.doe@example.com"}
 			jwtManagerMock.EXPECT().VerifyRefreshToken("old.refresh.token").Return(&domain.JWTClaims{ID: user.ID}, nil)
-			userTokenRepoMock.EXPECT().FindOne(gomock.Any(), user.ID, domain.TokenTypeRefreshToken).Return(&domain.UserToken{
-				UserID:    user.ID,
-				Token:     "old.refresh.hash",
-				TokenType: domain.TokenTypeRefreshToken,
-				ExpiresAt: time.Now().Add(1 * time.Hour),
-			}, nil)
-			hasherMock.EXPECT().Verify("old.refresh.token", "old.refresh.hash").Return(true, nil)
+			sessionRepoMock.EXPECT().GetRefreshToken(gomock.Any(), user.ID).Return("old.refresh.token", nil)
 			userRepoMock.EXPECT().FindByID(gomock.Any(), user.ID).Return(user, nil)
-			jwtManagerMock.EXPECT().GeneratePairToken(gomock.AssignableToTypeOf(&domain.JWTClaims{})).Return(&domain.PairToken{
-				AccessToken:  "new.access.token",
-				RefreshToken: "new.refresh.token",
-			}, nil)
-			hasherMock.EXPECT().Hash("new.refresh.token").Return("new.refresh.hash", nil)
-			userTokenRepoMock.EXPECT().Create(gomock.Any(), gomock.AssignableToTypeOf(&domain.UserToken{})).DoAndReturn(
-				func(_ context.Context, t *domain.UserToken) error {
-					Expect(t.UserID).To(Equal(user.ID))
-					Expect(t.TokenType).To(Equal(domain.TokenTypeRefreshToken))
-					Expect(t.Token).To(Equal("new.refresh.hash"))
-					return nil
-				},
-			)
+			jwtManagerMock.EXPECT().
+				GeneratePairToken(gomock.AssignableToTypeOf(&domain.JWTClaims{})).
+				Return(&domain.PairToken{
+					AccessToken:  "new.access.token",
+					RefreshToken: "new.refresh.token",
+				}, nil)
+			sessionRepoMock.EXPECT().SavePairToken(
+				gomock.Any(),
+				user.ID,
+				"new.access.token",
+				"new.refresh.token",
+				15*time.Minute,
+				24*time.Hour,
+			).Return(nil)
 
 			token, err := svc.RefreshToken(ctx, "old.refresh.token")
 			Expect(err).NotTo(HaveOccurred())
@@ -166,7 +173,7 @@ var _ = Describe("Auth", Label("unit", "usecase"), func() {
 
 		It("should return unauthorized when stored token is missing", func() {
 			jwtManagerMock.EXPECT().VerifyRefreshToken("old.refresh.token").Return(&domain.JWTClaims{ID: 1}, nil)
-			userTokenRepoMock.EXPECT().FindOne(gomock.Any(), int64(1), domain.TokenTypeRefreshToken).Return(nil, domain.ErrResourceNotFound)
+			sessionRepoMock.EXPECT().GetRefreshToken(gomock.Any(), int64(1)).Return("", domain.ErrResourceNotFound)
 
 			token, err := svc.RefreshToken(ctx, "old.refresh.token")
 			Expect(err).To(HaveOccurred())

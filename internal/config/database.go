@@ -2,25 +2,26 @@ package config
 
 import (
 	"fmt"
+	"net"
+	"strconv"
 
 	"github.com/akfaiz/go-starter-kit/pkg/env"
 )
 
 type Database struct {
-	Host     string
-	Port     int
-	User     string
+	Host     string `validate:"required" label:"DB_HOST"`
+	Port     int    `validate:"gt=0"     label:"DB_PORT"`
+	User     string `validate:"required" label:"DB_USER"`
 	Password string
-	Name     string
-	SSLMode  string
+	Name     string `validate:"required" label:"DB_NAME"`
+	SSLMode  string `validate:"required" label:"DB_SSLMODE"`
 }
 
 func (d Database) DSN() string {
-	return fmt.Sprintf("postgres://%s:%s@%s:%d/%s?sslmode=%s",
+	return fmt.Sprintf("postgres://%s:%s@%s/%s?sslmode=%s",
 		d.User,
 		d.Password,
-		d.Host,
-		d.Port,
+		net.JoinHostPort(d.Host, strconv.Itoa(d.Port)),
 		d.Name,
 		d.SSLMode,
 	)

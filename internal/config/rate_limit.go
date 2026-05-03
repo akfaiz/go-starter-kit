@@ -7,12 +7,12 @@ import (
 )
 
 type RateLimit struct {
-	LoginAttempts         int64
-	LoginWindow           time.Duration
-	LoginLockoutThreshold int64
-	LoginLockoutDuration  time.Duration
-	RefreshAttemptsPerIP  int64
-	RefreshWindow         time.Duration
+	LoginAttempts         int64         `validate:"gt=0" label:"AUTH_LOGIN_LIMIT_ATTEMPTS"`
+	LoginWindow           time.Duration `validate:"gt=0" label:"AUTH_LOGIN_LIMIT_WINDOW"`
+	LoginLockoutThreshold int64         `validate:"gt=0" label:"AUTH_LOGIN_LOCKOUT_THRESHOLD"`
+	LoginLockoutDuration  time.Duration `validate:"gt=0" label:"AUTH_LOGIN_LOCKOUT_DURATION"`
+	RefreshAttemptsPerIP  int64         `validate:"gt=0" label:"AUTH_REFRESH_LIMIT_ATTEMPTS"`
+	RefreshWindow         time.Duration `validate:"gt=0" label:"AUTH_REFRESH_LIMIT_WINDOW"`
 }
 
 func loadRateLimitConfig() RateLimit {

@@ -13,13 +13,13 @@ type Auth struct {
 }
 
 type JWT struct {
-	AccessSecret   string
-	RefreshSecret  string
-	AccessExpires  time.Duration
-	RefreshExpires time.Duration
+	AccessSecret   string        `validate:"required" label:"JWT_ACCESS_SECRET"`
+	RefreshSecret  string        `validate:"required" label:"JWT_REFRESH_SECRET"`
+	AccessExpires  time.Duration `validate:"gt=0"     label:"JWT_ACCESS_EXPIRES_IN"`
+	RefreshExpires time.Duration `validate:"gt=0"     label:"JWT_REFRESH_EXPIRES_IN"`
 }
 
-func getAuthConfig() Auth {
+func loadAuthConfig() Auth {
 	return Auth{
 		ResetPasswordExpiration: 60 * time.Minute,
 		VerificationExpiration:  60 * time.Minute,

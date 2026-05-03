@@ -55,6 +55,14 @@ coverage-html:
 fmt:
 	go fmt ./...
 
+.PHONY: lint
+lint:
+	golangci-lint run --timeout 5m
+
+.PHONY: lint-fix
+lint-fix:
+	golangci-lint run --fix --timeout 5m
+
 .PHONY: run
 run:
 	go run . serve

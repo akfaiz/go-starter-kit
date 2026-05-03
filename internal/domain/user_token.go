@@ -25,5 +25,4 @@ type TokenType string
 
 const (
 	TokenTypeForgotPasswordOTP TokenType = "forgot_password_otp"
-	TokenTypeRefreshToken      TokenType = "refresh_token"
 )

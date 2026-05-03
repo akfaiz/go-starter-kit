@@ -12,16 +12,16 @@ type Mail struct {
 }
 
 type MailSMTP struct {
-	Host     string
-	Port     int
+	Host     string `validate:"required"                label:"MAIL_HOST"`
+	Port     int    `validate:"gt=0"                    label:"MAIL_PORT"`
 	Username string
 	Password string
-	TLSMode  string
+	TLSMode  string `validate:"oneof=starttls tls none" label:"MAIL_TLS_MODE"`
 }
 
 type MailFrom struct {
-	Address string
-	Name    string
+	Address string `validate:"required" label:"MAIL_FROM_ADDRESS"`
+	Name    string `validate:"required" label:"MAIL_FROM_NAME"`
 }
 
 func loadMailConfig() Mail {

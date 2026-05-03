@@ -3,10 +3,10 @@ package config
 import "github.com/akfaiz/go-starter-kit/pkg/env"
 
 type Redis struct {
-	Addr     string
+	Addr     string `validate:"required" label:"REDIS_ADDR"`
 	Password string
 	DB       int
-	Prefix   string
+	Prefix   string `validate:"required" label:"REDIS_PREFIX"`
 }
 
 func loadRedisConfig() Redis {

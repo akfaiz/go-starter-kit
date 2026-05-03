@@ -37,7 +37,11 @@ var _ = Describe("AuthHandler", Label("unit", "handler"), func() {
 
 	Describe("Register", func() {
 		It("returns 201 with tokens when registration succeeds", func() {
-			c, rec := newJSONContext(http.MethodPost, "/auth/register", `{"name":"john","email":"john@example.com","password":"secret123","password_confirmation":"secret123"}`)
+			c, rec := newJSONContext(
+				http.MethodPost,
+				"/auth/register",
+				`{"name":"john","email":"john@example.com","password":"secret123","password_confirmation":"secret123"}`,
+			)
 
 			service.EXPECT().
 				Register(gomock.Any(), gomock.AssignableToTypeOf(&domain.User{})).
@@ -61,7 +65,11 @@ var _ = Describe("AuthHandler", Label("unit", "handler"), func() {
 
 	Describe("Login", func() {
 		It("returns too many requests error and retry-after header when limited", func() {
-			c, rec := newJSONContext(http.MethodPost, "/auth/login", `{"email":"john@example.com","password":"secret123"}`)
+			c, rec := newJSONContext(
+				http.MethodPost,
+				"/auth/login",
+				`{"email":"john@example.com","password":"secret123"}`,
+			)
 
 			guard.EXPECT().
 				CheckLogin(gomock.Any(), gomock.Any(), "john@example.com").
@@ -77,10 +85,18 @@ var _ = Describe("AuthHandler", Label("unit", "handler"), func() {
 		})
 
 		It("returns 200 with token response on success", func() {
-			c, rec := newJSONContext(http.MethodPost, "/auth/login", `{"email":"john@example.com","password":"secret123"}`)
+			c, rec := newJSONContext(
+				http.MethodPost,
+				"/auth/login",
+				`{"email":"john@example.com","password":"secret123"}`,
+			)
 
-			guard.EXPECT().CheckLogin(gomock.Any(), gomock.Any(), "john@example.com").Return(&security.RateLimitResult{}, nil)
-			service.EXPECT().Login(gomock.Any(), "john@example.com", "secret123").Return(&domain.PairToken{AccessToken: "acc", RefreshToken: "ref"}, nil)
+			guard.EXPECT().
+				CheckLogin(gomock.Any(), gomock.Any(), "john@example.com").
+				Return(&security.RateLimitResult{}, nil)
+			service.EXPECT().
+				Login(gomock.Any(), "john@example.com", "secret123").
+				Return(&domain.PairToken{AccessToken: "acc", RefreshToken: "ref"}, nil)
 			guard.EXPECT().OnLoginSuccess(gomock.Any(), "john@example.com").Return(nil)
 
 			err := h.Login(c)
@@ -99,7 +115,9 @@ var _ = Describe("AuthHandler", Label("unit", "handler"), func() {
 			c, rec := newJSONContext(http.MethodPost, "/auth/refresh", `{"refresh_token":"r1"}`)
 
 			guard.EXPECT().CheckRefresh(gomock.Any(), gomock.Any()).Return(&security.RateLimitResult{}, nil)
-			service.EXPECT().RefreshToken(gomock.Any(), "r1").Return(&domain.PairToken{AccessToken: "new-acc", RefreshToken: "new-ref"}, nil)
+			service.EXPECT().
+				RefreshToken(gomock.Any(), "r1").
+				Return(&domain.PairToken{AccessToken: "new-acc", RefreshToken: "new-ref"}, nil)
 
 			err := h.RefreshToken(c)
 			Expect(err).NotTo(HaveOccurred())
@@ -125,7 +143,11 @@ var _ = Describe("AuthHandler", Label("unit", "handler"), func() {
 
 	Describe("VerifyForgotPasswordOTP", func() {
 		It("returns 200 when OTP is valid", func() {
-			c, rec := newJSONContext(http.MethodPost, "/auth/forgot-password/verify-otp", `{"email":"john@example.com","otp":"123456"}`)
+			c, rec := newJSONContext(
+				http.MethodPost,
+				"/auth/forgot-password/verify-otp",
+				`{"email":"john@example.com","otp":"123456"}`,
+			)
 
 			service.EXPECT().VerifyForgotPasswordOTP(gomock.Any(), "john@example.com", "123456").Return(nil)
 
@@ -137,7 +159,11 @@ var _ = Describe("AuthHandler", Label("unit", "handler"), func() {
 
 	Describe("ResetPasswordWithOTP", func() {
 		It("returns 200 when password reset succeeds", func() {
-			c, rec := newJSONContext(http.MethodPost, "/auth/forgot-password/reset", `{"email":"john@example.com","otp":"123456","password":"newpassword","password_confirmation":"newpassword"}`)
+			c, rec := newJSONContext(
+				http.MethodPost,
+				"/auth/forgot-password/reset",
+				`{"email":"john@example.com","otp":"123456","password":"newpassword","password_confirmation":"newpassword"}`,
+			)
 
 			service.EXPECT().ResetPasswordWithOTP(gomock.Any(), "john@example.com", "123456", "newpassword").Return(nil)
 

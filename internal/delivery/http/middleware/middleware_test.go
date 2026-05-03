@@ -43,12 +43,13 @@ var _ = Describe("Middleware package", Label("unit", "middleware"), func() {
 		Expect(err).NotTo(HaveOccurred())
 	})
 
-	It("New wires auth middleware from JWT manager", func() {
+	It("New wires auth middleware from JWT manager and session repository", func() {
 		ctrl := gomock.NewController(GinkgoT())
 		defer ctrl.Finish()
 
 		jwt := mocks.NewMockJWTManager(ctrl)
-		out := middleware.New(middleware.MiddlewareConfig{JWTManager: jwt})
+		sessionRepo := mocks.NewMockSessionRepository(ctrl)
+		out := middleware.New(middleware.Config{JWTManager: jwt, SessionRepo: sessionRepo})
 		Expect(out.Auth).NotTo(BeNil())
 
 		e := echo.New()

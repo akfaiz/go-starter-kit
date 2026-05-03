@@ -1,7 +1,6 @@
 package validator_test
 
 import (
-	"errors"
 	"testing"
 
 	"github.com/akfaiz/go-starter-kit/pkg/validator"
@@ -10,8 +9,8 @@ import (
 )
 
 type registerRequest struct {
-	Email                string `json:"email" validate:"required,email" label:"Email"`
-	Password             string `json:"password" validate:"required,min=8" label:"Password"`
+	Email                string `json:"email"                 validate:"required,email"            label:"Email"`
+	Password             string `json:"password"              validate:"required,min=8"            label:"Password"`
 	PasswordConfirmation string `json:"password_confirmation" validate:"required,eqfield=Password" label:"Confirm Password"`
 }
 
@@ -59,7 +58,7 @@ func TestValidate_ReturnsValidationErrorWithJSONFieldAndTranslatedMessage(t *tes
 	require.Error(t, err)
 
 	var vErr *validator.ValidationError
-	require.True(t, errors.As(err, &vErr), "expected *ValidationError, got %T", err)
+	require.ErrorAs(t, err, &vErr, "expected *ValidationError, got %T", err)
 	require.Len(t, *vErr, 1)
 
 	first := vErr.First()
@@ -80,7 +79,7 @@ func TestValidate_UsesLabelInMessageAndJSONFieldKey(t *testing.T) {
 	require.Error(t, err)
 
 	var vErr *validator.ValidationError
-	require.True(t, errors.As(err, &vErr), "expected *ValidationError, got %T", err)
+	require.ErrorAs(t, err, &vErr, "expected *ValidationError, got %T", err)
 
 	found := map[string]string{}
 	for _, fieldErr := range *vErr {
@@ -103,7 +102,7 @@ func TestValidate_NestedStructPathUsesJSONKeys(t *testing.T) {
 	require.Error(t, err)
 
 	var vErr *validator.ValidationError
-	require.True(t, errors.As(err, &vErr), "expected *ValidationError, got %T", err)
+	require.ErrorAs(t, err, &vErr, "expected *ValidationError, got %T", err)
 	require.NotNil(t, vErr.First())
 
 	assert.Equal(t, "profile.street", vErr.First().Field)
@@ -120,7 +119,7 @@ func TestValidate_ArrayPathUsesJSONKeysWithIndex(t *testing.T) {
 	require.Error(t, err)
 
 	var vErr *validator.ValidationError
-	require.True(t, errors.As(err, &vErr), "expected *ValidationError, got %T", err)
+	require.ErrorAs(t, err, &vErr, "expected *ValidationError, got %T", err)
 	require.NotNil(t, vErr.First())
 
 	assert.Equal(t, "tags[0]", vErr.First().Field)
@@ -139,7 +138,7 @@ func TestValidate_ArrayStructPathUsesJSONKeysWithIndex(t *testing.T) {
 	require.Error(t, err)
 
 	var vErr *validator.ValidationError
-	require.True(t, errors.As(err, &vErr), "expected *ValidationError, got %T", err)
+	require.ErrorAs(t, err, &vErr, "expected *ValidationError, got %T", err)
 	require.NotNil(t, vErr.First())
 
 	assert.Equal(t, "phones[0].number", vErr.First().Field)

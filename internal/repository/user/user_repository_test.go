@@ -3,7 +3,6 @@ package user
 import (
 	"context"
 	"database/sql"
-	"errors"
 	"regexp"
 	"testing"
 
@@ -23,7 +22,7 @@ func TestFindByEmail_NoRowsReturnsResourceNotFound(t *testing.T) {
 		WillReturnError(sql.ErrNoRows)
 
 	got, err := r.FindByEmail(context.Background(), "missing@example.com")
-	assert.True(t, errors.Is(err, domain.ErrResourceNotFound))
+	assert.ErrorIs(t, err, domain.ErrResourceNotFound)
 	assert.Nil(t, got)
 
 	assert.NoError(t, mock.ExpectationsWereMet())
@@ -39,7 +38,7 @@ func TestDelete_NoRowsReturnsResourceNotFound(t *testing.T) {
 		WillReturnResult(sqlmock.NewResult(0, 0))
 
 	err := r.Delete(context.Background(), 99)
-	assert.True(t, errors.Is(err, domain.ErrResourceNotFound))
+	assert.ErrorIs(t, err, domain.ErrResourceNotFound)
 
 	assert.NoError(t, mock.ExpectationsWereMet())
 }

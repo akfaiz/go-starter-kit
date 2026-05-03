@@ -20,6 +20,7 @@ type service struct {
 	cfg            config.Config
 	userRepo       domain.UserRepository
 	userTokenRepo  domain.UserTokenRepository
+	sessionRepo    domain.SessionRepository
 	passwordHasher domain.PasswordHasher
 	jwtManager     domain.JWTManager
 	mailer         domain.Mailer
@@ -29,6 +30,7 @@ func NewService(
 	cfg config.Config,
 	userRepo domain.UserRepository,
 	userTokenRepo domain.UserTokenRepository,
+	sessionRepo domain.SessionRepository,
 	passwordHasher domain.PasswordHasher,
 	jwtManager domain.JWTManager,
 	mailer domain.Mailer,
@@ -37,6 +39,7 @@ func NewService(
 		cfg:            cfg,
 		userRepo:       userRepo,
 		userTokenRepo:  userTokenRepo,
+		sessionRepo:    sessionRepo,
 		passwordHasher: passwordHasher,
 		jwtManager:     jwtManager,
 		mailer:         mailer,
@@ -90,21 +93,14 @@ func (s *service) RefreshToken(ctx context.Context, refreshToken string) (*domai
 		return nil, err
 	}
 
-	stored, err := s.userTokenRepo.FindOne(ctx, claims.ID, domain.TokenTypeRefreshToken)
+	storedRefreshToken, err := s.sessionRepo.GetRefreshToken(ctx, claims.ID)
 	if err != nil {
 		if errors.Is(err, domain.ErrResourceNotFound) {
 			return nil, errdefs.ErrUnauthorized("invalid refresh token")
 		}
 		return nil, err
 	}
-	if time.Now().After(stored.ExpiresAt) {
-		return nil, errdefs.ErrUnauthorized("refresh token expired")
-	}
-	match, err := s.passwordHasher.Verify(refreshToken, stored.Token)
-	if err != nil {
-		return nil, err
-	}
-	if !match {
+	if storedRefreshToken != refreshToken {
 		return nil, errdefs.ErrUnauthorized("invalid refresh token")
 	}
 
@@ -173,7 +169,7 @@ func (s *service) ResetPasswordWithOTP(ctx context.Context, email, otp, newPassw
 		return err
 	}
 	_ = s.userTokenRepo.Delete(ctx, user.ID, domain.TokenTypeForgotPasswordOTP)
-	_ = s.userTokenRepo.Delete(ctx, user.ID, domain.TokenTypeRefreshToken)
+	_ = s.sessionRepo.DeleteSession(ctx, user.ID)
 	return nil
 }
 
@@ -183,18 +179,14 @@ func (s *service) issuePairToken(ctx context.Context, claims *domain.JWTClaims) 
 		return nil, err
 	}
 
-	hashedRefreshToken, err := s.passwordHasher.Hash(pairToken.RefreshToken)
-	if err != nil {
-		return nil, err
-	}
-
-	refreshToken := &domain.UserToken{
-		UserID:    claims.ID,
-		Token:     hashedRefreshToken,
-		TokenType: domain.TokenTypeRefreshToken,
-		ExpiresAt: time.Now().Add(s.cfg.Auth.JWT.RefreshExpires),
-	}
-	if err := s.userTokenRepo.Create(ctx, refreshToken); err != nil {
+	if err := s.sessionRepo.SavePairToken(
+		ctx,
+		claims.ID,
+		pairToken.AccessToken,
+		pairToken.RefreshToken,
+		s.cfg.Auth.JWT.AccessExpires,
+		s.cfg.Auth.JWT.RefreshExpires,
+	); err != nil {
 		return nil, err
 	}
 
@@ -246,10 +238,10 @@ func (s *service) buildEmailForgotPasswordOTP(user *domain.User, otp string) *ma
 
 func (s *service) generateOTP(length int) (string, error) {
 	const digits = "0123456789"
-	max := big.NewInt(int64(len(digits)))
+	upperBound := big.NewInt(int64(len(digits)))
 	otp := make([]byte, length)
 	for i := range otp {
-		n, err := rand.Int(rand.Reader, max)
+		n, err := rand.Int(rand.Reader, upperBound)
 		if err != nil {
 			return "", err
 		}

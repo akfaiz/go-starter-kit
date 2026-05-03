@@ -19,7 +19,9 @@ func NewTracerProvider(cfg config.Config) (*sdktrace.TracerProvider, error) {
 	if !cfg.Telemetry.Enabled || cfg.Telemetry.Exporter == "none" {
 		tp := sdktrace.NewTracerProvider(sdktrace.WithSampler(sdktrace.NeverSample()))
 		otel.SetTracerProvider(tp)
-		otel.SetTextMapPropagator(propagation.NewCompositeTextMapPropagator(propagation.TraceContext{}, propagation.Baggage{}))
+		otel.SetTextMapPropagator(
+			propagation.NewCompositeTextMapPropagator(propagation.TraceContext{}, propagation.Baggage{}),
+		)
 		return tp, nil
 	}
 
@@ -53,7 +55,9 @@ func NewTracerProvider(cfg config.Config) (*sdktrace.TracerProvider, error) {
 	)
 
 	otel.SetTracerProvider(tp)
-	otel.SetTextMapPropagator(propagation.NewCompositeTextMapPropagator(propagation.TraceContext{}, propagation.Baggage{}))
+	otel.SetTextMapPropagator(
+		propagation.NewCompositeTextMapPropagator(propagation.TraceContext{}, propagation.Baggage{}),
+	)
 	return tp, nil
 }
 

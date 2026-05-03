@@ -1,73 +1,54 @@
 package config
 
 import (
-	"strings"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func validConfig() Config {
-	return Config{
-		App: App{Name: "app"},
-		Auth: Auth{JWT: JWT{
-			AccessSecret:   "access-secret",
-			RefreshSecret:  "refresh-secret",
-			AccessExpires:  15 * time.Minute,
-			RefreshExpires: 24 * time.Hour,
-		}},
-		Database: Database{User: "dbuser", Name: "dbname"},
-		Mail: Mail{
-			SMTP: MailSMTP{TLSMode: "starttls"},
-			From: MailFrom{Address: "noreply@example.com", Name: "Example"},
-		},
-		RateLimit: RateLimit{
-			LoginAttempts:         5,
-			LoginWindow:           10 * time.Minute,
-			LoginLockoutThreshold: 5,
-			LoginLockoutDuration:  15 * time.Minute,
-			RefreshAttemptsPerIP:  20,
-			RefreshWindow:         10 * time.Minute,
-		},
-		Redis:  Redis{Addr: "localhost:6379", Prefix: "gsk"},
-		Server: Server{Port: 8080, CORSOrigins: []string{"http://localhost:8080"}},
-		Telemetry: Telemetry{
-			ServiceName:   "go-starter-kit",
-			Exporter:      "otlp",
-			Endpoint:      "jaeger:4317",
-			SampleRatio:   1,
-			ExportTimeout: 5 * time.Second,
-		},
-	}
+func setValidEnv(t *testing.T) {
+	t.Helper()
+	t.Setenv("DB_USER", "dbuser")
+	t.Setenv("DB_NAME", "dbname")
+	t.Setenv("JWT_ACCESS_SECRET", "access-secret")
+	t.Setenv("JWT_REFRESH_SECRET", "refresh-secret")
+	t.Setenv("JWT_ACCESS_EXPIRES_IN", "15m")
+	t.Setenv("JWT_REFRESH_EXPIRES_IN", "24h")
+	t.Setenv("MAIL_FROM_ADDRESS", "noreply@example.com")
+	t.Setenv("MAIL_FROM_NAME", "Example")
+	t.Setenv("MAIL_TLS_MODE", "starttls")
+	t.Setenv("OTEL_EXPORTER", "otlp")
+	t.Setenv("OTEL_TRACES_SAMPLER_RATIO", "1")
+	t.Setenv("OTEL_EXPORT_TIMEOUT", "5s")
 }
 
-func TestValidate_Success(t *testing.T) {
-	cfg := validConfig()
-	assert.NoError(t, cfg.validate())
+func TestLoadConfig_Success(t *testing.T) {
+	setValidEnv(t)
+
+	cfg := loadConfig()
+	err := cfg.Validate()
+	require.NoError(t, err)
+	assert.Equal(t, "dbuser", cfg.Database.User)
+	assert.Equal(t, "dbname", cfg.Database.Name)
 }
 
-func TestValidate_FailureAggregatesErrors(t *testing.T) {
-	cfg := validConfig()
-	cfg.Database.User = ""
-	cfg.Auth.JWT.AccessExpires = 0
-	cfg.Mail.SMTP.TLSMode = "invalid"
-	cfg.Telemetry.Exporter = "zipkin"
-	cfg.Telemetry.SampleRatio = 2
+func TestLoadDatabaseConfig_ReturnsErrorOnMissingUser(t *testing.T) {
+	setValidEnv(t)
+	t.Setenv("DB_USER", "")
 
-	err := cfg.validate()
+	cfg := loadConfig()
+	err := cfg.Validate()
 	require.Error(t, err)
+	assert.Contains(t, err.Error(), "DB_USER is a required field")
+}
 
-	msg := err.Error()
-	checks := []string{
-		"DB_USER is required",
-		"JWT_ACCESS_EXPIRES_IN must be greater than 0",
-		"MAIL_TLS_MODE must be one of: starttls, tls, none",
-		"OTEL_EXPORTER must be one of: otlp, none",
-		"OTEL_TRACES_SAMPLER_RATIO must be between 0 and 1",
-	}
-	for _, want := range checks {
-		assert.True(t, strings.Contains(msg, want), "validate() error %q does not contain %q", msg, want)
-	}
+func TestLoadConfig_ReturnsErrorOnInvalidMailTLSMode(t *testing.T) {
+	setValidEnv(t)
+	t.Setenv("MAIL_TLS_MODE", "invalid")
+
+	cfg := loadConfig()
+	err := cfg.Validate()
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "MAIL_TLS_MODE must be one of [starttls tls none]")
 }

@@ -23,7 +23,7 @@ func TestHash(t *testing.T) {
 		// Verify hash format: $argon2id$v=19$m=65536,t=3,p=1$salt$hash
 		parts := strings.Split(hash, "$")
 		assert.Len(t, parts, 6)
-		assert.Equal(t, "", parts[0]) // empty before first $
+		assert.Empty(t, parts[0]) // empty before first $
 		assert.Equal(t, "argon2id", parts[1])
 		assert.Equal(t, "v=19", parts[2])
 		assert.Equal(t, "m=65536,t=3,p=1", parts[3])

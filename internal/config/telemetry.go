@@ -8,12 +8,12 @@ import (
 
 type Telemetry struct {
 	Enabled       bool
-	ServiceName   string
-	Exporter      string
-	Endpoint      string
+	ServiceName   string `validate:"required"        label:"OTEL_SERVICE_NAME"`
+	Exporter      string `validate:"oneof=otlp none" label:"OTEL_EXPORTER"`
+	Endpoint      string `validate:"required"        label:"OTEL_EXPORTER_OTLP_ENDPOINT"`
 	Insecure      bool
-	SampleRatio   float64
-	ExportTimeout time.Duration
+	SampleRatio   float64       `validate:"gte=0,lte=1"     label:"OTEL_TRACES_SAMPLER_RATIO"`
+	ExportTimeout time.Duration `validate:"gt=0"            label:"OTEL_EXPORT_TIMEOUT"`
 }
 
 func loadTelemetryConfig() Telemetry {

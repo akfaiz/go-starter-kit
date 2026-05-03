@@ -4,9 +4,12 @@ import (
 	"context"
 	"database/sql"
 
+	// Register SQL migrations.
 	_ "github.com/akfaiz/go-starter-kit/db/migrations"
 	"github.com/akfaiz/go-starter-kit/internal/config"
 	"github.com/akfaiz/migris/extra/migriscli"
+
+	// Register pgx database/sql driver.
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/urfave/cli/v3"
 )
@@ -19,7 +22,7 @@ func Command() *cli.Command {
 		return &cli.Command{
 			Name:  "migrate",
 			Usage: "Database migration commands",
-			Action: func(ctx context.Context, cmd *cli.Command) error {
+			Action: func(_ context.Context, _ *cli.Command) error {
 				return err
 			},
 		}
@@ -29,7 +32,7 @@ func Command() *cli.Command {
 		return &cli.Command{
 			Name:  "migrate",
 			Usage: "Database migration commands",
-			Action: func(ctx context.Context, cmd *cli.Command) error {
+			Action: func(_ context.Context, _ *cli.Command) error {
 				return err
 			},
 		}

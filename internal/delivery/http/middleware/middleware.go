@@ -13,14 +13,15 @@ type Middleware struct {
 	Auth echo.MiddlewareFunc `name:"auth"`
 }
 
-type MiddlewareConfig struct {
+type Config struct {
 	fx.In
 
-	JWTManager domain.JWTManager
+	JWTManager  domain.JWTManager
+	SessionRepo domain.SessionRepository
 }
 
-func New(cfg MiddlewareConfig) Middleware {
+func New(cfg Config) Middleware {
 	return Middleware{
-		Auth: auth.New(cfg.JWTManager),
+		Auth: auth.NewWithSession(cfg.JWTManager, cfg.SessionRepo),
 	}
 }

@@ -76,7 +76,7 @@ func (j *jwtManager) generateToken(claims *domain.JWTClaims, secret []byte, expi
 }
 
 func (j *jwtManager) verifyToken(token string, secret []byte) (*domain.JWTClaims, error) {
-	parsedToken, err := jwt.ParseWithClaims(token, &domain.JWTClaims{}, func(t *jwt.Token) (any, error) {
+	parsedToken, err := jwt.ParseWithClaims(token, &domain.JWTClaims{}, func(_ *jwt.Token) (any, error) {
 		return secret, nil
 	})
 	if err != nil {

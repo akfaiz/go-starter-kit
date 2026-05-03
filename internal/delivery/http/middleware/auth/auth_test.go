@@ -17,8 +17,9 @@ import (
 
 var _ = Describe("Auth middleware", Label("unit", "middleware"), func() {
 	var (
-		ctrl *gomock.Controller
-		jwt  *mocks.MockJWTManager
+		ctrl    *gomock.Controller
+		jwt     *mocks.MockJWTManager
+		session *mocks.MockSessionRepository
 	)
 
 	newContext := func(authHeader string) *echo.Context {
@@ -35,6 +36,7 @@ var _ = Describe("Auth middleware", Label("unit", "middleware"), func() {
 	BeforeEach(func() {
 		ctrl = gomock.NewController(GinkgoT())
 		jwt = mocks.NewMockJWTManager(ctrl)
+		session = mocks.NewMockSessionRepository(ctrl)
 	})
 
 	AfterEach(func() {
@@ -45,7 +47,7 @@ var _ = Describe("Auth middleware", Label("unit", "middleware"), func() {
 		c := newContext("")
 		nextCalled := false
 
-		err := authmw.New(jwt)(func(c *echo.Context) error {
+		err := authmw.NewWithSession(jwt, session)(func(c *echo.Context) error {
 			nextCalled = true
 			return nil
 		})(c)
@@ -59,7 +61,7 @@ var _ = Describe("Auth middleware", Label("unit", "middleware"), func() {
 	It("returns unauthorized when Authorization header is not Bearer", func() {
 		c := newContext("Token abc")
 
-		err := authmw.New(jwt)(func(c *echo.Context) error { return nil })(c)
+		err := authmw.NewWithSession(jwt, session)(func(c *echo.Context) error { return nil })(c)
 
 		var appErr *errdefs.AppError
 		Expect(errors.As(err, &appErr)).To(BeTrue())
@@ -69,7 +71,7 @@ var _ = Describe("Auth middleware", Label("unit", "middleware"), func() {
 	It("returns unauthorized when Bearer token is empty", func() {
 		c := newContext("Bearer ")
 
-		err := authmw.New(jwt)(func(c *echo.Context) error { return nil })(c)
+		err := authmw.NewWithSession(jwt, session)(func(c *echo.Context) error { return nil })(c)
 
 		var appErr *errdefs.AppError
 		Expect(errors.As(err, &appErr)).To(BeTrue())
@@ -80,7 +82,7 @@ var _ = Describe("Auth middleware", Label("unit", "middleware"), func() {
 		c := newContext("Bearer bad-token")
 		jwt.EXPECT().VerifyAccessToken("bad-token").Return(nil, errors.New("invalid token"))
 
-		err := authmw.New(jwt)(func(c *echo.Context) error { return nil })(c)
+		err := authmw.NewWithSession(jwt, session)(func(c *echo.Context) error { return nil })(c)
 		Expect(err).To(MatchError("invalid token"))
 	})
 
@@ -88,9 +90,10 @@ var _ = Describe("Auth middleware", Label("unit", "middleware"), func() {
 		c := newContext("Bearer good-token")
 		claims := &domain.JWTClaims{ID: 1, Email: "john@example.com"}
 		jwt.EXPECT().VerifyAccessToken("good-token").Return(claims, nil)
+		session.EXPECT().GetAccessToken(gomock.Any(), int64(1)).Return("good-token", nil)
 
 		nextCalled := false
-		err := authmw.New(jwt)(func(c *echo.Context) error {
+		err := authmw.NewWithSession(jwt, session)(func(c *echo.Context) error {
 			nextCalled = true
 			Expect(authmw.GetUser(c)).To(Equal(claims))
 			Expect(authmw.GetUserFromContext(c.Request().Context())).To(Equal(claims))
@@ -99,5 +102,18 @@ var _ = Describe("Auth middleware", Label("unit", "middleware"), func() {
 
 		Expect(err).NotTo(HaveOccurred())
 		Expect(nextCalled).To(BeTrue())
+	})
+
+	It("returns unauthorized when session token does not match", func() {
+		c := newContext("Bearer good-token")
+		claims := &domain.JWTClaims{ID: 1, Email: "john@example.com"}
+		jwt.EXPECT().VerifyAccessToken("good-token").Return(claims, nil)
+		session.EXPECT().GetAccessToken(gomock.Any(), int64(1)).Return("another-token", nil)
+
+		err := authmw.NewWithSession(jwt, session)(func(c *echo.Context) error { return nil })(c)
+
+		var appErr *errdefs.AppError
+		Expect(errors.As(err, &appErr)).To(BeTrue())
+		Expect(appErr.Status).To(Equal(http.StatusUnauthorized))
 	})
 })

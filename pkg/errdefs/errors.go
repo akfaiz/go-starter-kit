@@ -16,9 +16,24 @@ var (
 	ErrUnprocessableEntity = register("Unprocessable entity", "about:blank", 422)
 	ErrInternalServer      = register("Internal Server Error", "about:blank", 500)
 
-	ErrInvalidRequestBody = register("Invalid request body", "about:blank", 400, "Your request body is malformed. Please check your JSON format.")
-	ErrInvalidQueryParam  = register("Invalid query parameter", "about:blank", 400, "Your query parameter is invalid. Please check your request.")
-	ErrValidation         = register("Validation failed", "about:blank", 422, "One or more fields are invalid. Please check your input and try again.")
+	ErrInvalidRequestBody = register(
+		"Invalid request body",
+		"about:blank",
+		400,
+		"Your request body is malformed. Please check your JSON format.",
+	)
+	ErrInvalidQueryParam = register(
+		"Invalid query parameter",
+		"about:blank",
+		400,
+		"Your query parameter is invalid. Please check your request.",
+	)
+	ErrValidation = register(
+		"Validation failed",
+		"about:blank",
+		422,
+		"One or more fields are invalid. Please check your input and try again.",
+	)
 
 	ErrTokenExpired = register("Unauthorized", "about:blank", 401, "Your session has expired. Please log in again.")
 	ErrTokenInvalid = register("Unauthorized", "about:blank", 401, "Your token is invalid. Please log in again.")

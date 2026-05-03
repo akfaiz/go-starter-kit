@@ -1,6 +1,7 @@
 package validator
 
 import (
+	"errors"
 	"reflect"
 	"strings"
 
@@ -38,13 +39,14 @@ func New() *Validate {
 	return &Validate{validate: v, trans: trans}
 }
 
-func (v *Validate) Validate(i interface{}) error {
+func (v *Validate) Validate(i any) error {
 	err := v.validate.Struct(i)
 	if err == nil {
 		return nil
 	}
 
-	validationErrors, ok := err.(govalidator.ValidationErrors)
+	var validationErrors govalidator.ValidationErrors
+	ok := errors.As(err, &validationErrors)
 	if !ok {
 		return err
 	}
@@ -67,7 +69,7 @@ func (v *Validate) Validate(i interface{}) error {
 	return NewErrors(fieldErrors...)
 }
 
-func jsonFieldPath(i interface{}, structNamespace, fallback string) string {
+func jsonFieldPath(i any, structNamespace, fallback string) string {
 	if structNamespace == "" {
 		return fallback
 	}
@@ -103,40 +105,9 @@ func jsonFieldPath(i interface{}, structNamespace, fallback string) string {
 			continue
 		}
 
-		for current.Kind() == reflect.Pointer {
-			current = current.Elem()
-		}
-
-		if current.Kind() != reflect.Struct {
-			pathParts = append(pathParts, name+indexSuffix)
-			continue
-		}
-
-		field, ok := current.FieldByName(name)
-		if !ok {
-			pathParts = append(pathParts, name+indexSuffix)
-			continue
-		}
-
-		jsonName := strings.Split(field.Tag.Get("json"), ",")[0]
-		if jsonName == "" || jsonName == "-" {
-			jsonName = name
-		}
+		jsonName, nextType := resolveJSONNameAndType(current, name, indexSuffix)
 		pathParts = append(pathParts, jsonName+indexSuffix)
-
-		current = field.Type
-		for current.Kind() == reflect.Pointer {
-			current = current.Elem()
-		}
-		indexCount := strings.Count(indexSuffix, "[")
-		for i := 0; i < indexCount; i++ {
-			if current.Kind() == reflect.Slice || current.Kind() == reflect.Array {
-				current = current.Elem()
-				for current.Kind() == reflect.Pointer {
-					current = current.Elem()
-				}
-			}
-		}
+		current = nextType
 	}
 
 	if len(pathParts) == 0 {
@@ -144,6 +115,43 @@ func jsonFieldPath(i interface{}, structNamespace, fallback string) string {
 	}
 
 	return strings.Join(pathParts, ".")
+}
+
+func resolveJSONNameAndType(current reflect.Type, name, indexSuffix string) (string, reflect.Type) {
+	current = dereferenceType(current)
+	if current.Kind() != reflect.Struct {
+		return name, current
+	}
+
+	field, ok := current.FieldByName(name)
+	if !ok {
+		return name, current
+	}
+
+	jsonName := strings.Split(field.Tag.Get("json"), ",")[0]
+	if jsonName == "" || jsonName == "-" {
+		jsonName = name
+	}
+
+	nextType := dereferenceType(field.Type)
+	return jsonName, unwrapIndexedType(nextType, indexSuffix)
+}
+
+func dereferenceType(t reflect.Type) reflect.Type {
+	for t.Kind() == reflect.Pointer {
+		t = t.Elem()
+	}
+	return t
+}
+
+func unwrapIndexedType(t reflect.Type, indexSuffix string) reflect.Type {
+	indexCount := strings.Count(indexSuffix, "[")
+	for range indexCount {
+		if t.Kind() == reflect.Slice || t.Kind() == reflect.Array {
+			t = dereferenceType(t.Elem())
+		}
+	}
+	return t
 }
 
 func splitFieldAndIndex(part string) (string, string) {

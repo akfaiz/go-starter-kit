@@ -108,7 +108,7 @@ var _ = Describe("Auth Flow E2E", Label("e2e"), func() {
 
 	It("rate limits repeated failed login attempts", func() {
 		limited := false
-		for i := 0; i < 6; i++ {
+		for range 6 {
 			resp := e2eExpect.POST("/api/v1/auth/login").
 				WithJSON(map[string]any{
 					"email":    "locked@example.com",

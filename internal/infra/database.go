@@ -1,6 +1,7 @@
 package infra
 
 import (
+	"context"
 	"database/sql"
 	"log/slog"
 	"time"
@@ -18,7 +19,7 @@ func NewDatabase(cfg config.Config) (*bun.DB, error) {
 	sqldb := sql.OpenDB(pgdriver.NewConnector(
 		pgdriver.WithDSN(cfg.Database.DSN()),
 	))
-	if err := sqldb.Ping(); err != nil {
+	if err := sqldb.PingContext(context.Background()); err != nil {
 		return nil, err
 	}
 	db := bun.NewDB(sqldb, pgdialect.New())

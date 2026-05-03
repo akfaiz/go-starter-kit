@@ -7,10 +7,10 @@ API-only starter kit built with Go.
 - Echo v5
 - OpenAPI router: `github.com/oaswrap/spec/adapter/echov5openapi`
 - Bun + PostgreSQL
-- Redis (auth rate limit + lockout)
+- Redis (auth rate limit + session store)
 - Migris migrations
 - JWT auth (access + refresh)
-- Refresh token rotation + DB-backed revocation
+- Token pair session management in Redis (access + refresh)
 - Forgot password with OTP via email
 - OpenTelemetry tracing (HTTP, Bun DB, Redis)
 - Jaeger for local trace visualization
@@ -32,9 +32,10 @@ Jaeger UI: `http://localhost:16686`
 
 ## Auth Security
 
-- Refresh token is rotated and stored hashed in `user_tokens`.
-- Refresh token reuse/mismatch is rejected.
-- Password reset revokes stored refresh token.
+- Access and refresh tokens are stored in Redis per user session.
+- Refresh token is rotated and validated against Redis.
+- Auth middleware validates access token against Redis active session.
+- Password reset revokes active session (access + refresh tokens).
 - Redis-backed rate limiting:
   - Login: IP limit + email lockout on repeated failures.
   - Refresh token: IP limit.

@@ -13,7 +13,7 @@ func upCreateUserTokensTable(c schema.Context) error {
 	return schema.Create(c, "user_tokens", func(table *schema.Blueprint) {
 		table.ID()
 		table.BigInteger("user_id").Index()
-		table.Enum("token_type", []string{"forgot_password_otp", "refresh_token"})
+		table.Enum("token_type", []string{"forgot_password_otp"})
 		table.String("token")
 		table.Timestamp("expires_at")
 		table.Timestamp("created_at").UseCurrent()

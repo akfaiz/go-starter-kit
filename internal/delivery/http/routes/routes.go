@@ -14,6 +14,7 @@ import (
 
 type RouteConfig struct {
 	fx.In
+
 	Echo   *echo.Echo
 	Config config.Config
 
@@ -26,13 +27,17 @@ type RouteConfig struct {
 
 func Register(rc RouteConfig) {
 	rc.Echo.GET("/health", rc.HealthCheckHandler.HealthCheck)
-	r := echov5openapi.NewRouter(rc.Echo,
+	r := echov5openapi.NewRouter(
+		rc.Echo,
 		option.WithTitle("Go Starter Kit API"),
 		option.WithVersion("1.0.0"),
 		option.WithDescription("API starterkit with Echo v5, Bun, Migris, and OTP auth reset flow"),
 		option.WithReflectorConfig(option.StripDefNamePrefix("Dto")),
 		option.WithSecurity("bearerAuth", option.SecurityHTTPBearer("Bearer")),
-		option.WithServer(fmt.Sprintf("http://localhost:%d", rc.Config.Server.Port), option.ServerDescription("Local server")),
+		option.WithServer(
+			fmt.Sprintf("http://localhost:%d", rc.Config.Server.Port),
+			option.ServerDescription("Local server"),
+		),
 	)
 
 	v1 := r.Group("/api/v1")
