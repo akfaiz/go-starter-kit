@@ -52,3 +52,20 @@ func TestLoadConfig_ReturnsErrorOnInvalidMailTLSMode(t *testing.T) {
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "MAIL_TLS_MODE must be one of [starttls tls none]")
 }
+
+func TestLoad_Success(t *testing.T) {
+	setValidEnv(t)
+
+	cfg, err := Load()
+	assert.NoError(t, err)
+	assert.NotEmpty(t, cfg.App.Name)
+}
+
+func TestLoad_ValidationError(t *testing.T) {
+	setValidEnv(t)
+	t.Setenv("DB_USER", "")
+
+	cfg, err := Load()
+	assert.Error(t, err)
+	assert.Empty(t, cfg.Database.User)
+}

@@ -2,14 +2,12 @@ package handler_test
 
 import (
 	"database/sql"
-	"encoding/json"
 	"errors"
 	"net/http"
-	"net/http/httptest"
 
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/akfaiz/go-starter-kit/internal/delivery/http/handler"
-	"github.com/akfaiz/go-starter-kit/pkg/problem"
+	"github.com/gavv/httpexpect/v2"
 	"github.com/labstack/echo/v5"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -18,19 +16,22 @@ import (
 )
 
 var _ = Describe("HealthCheckHandler", Label("unit", "handler"), func() {
-	newContext := func() (*echo.Context, *httptest.ResponseRecorder) {
-		e := echo.New()
-		req := httptest.NewRequest(http.MethodGet, "/health", nil)
-		rec := httptest.NewRecorder()
-		c := e.NewContext(req, rec)
-		return c, rec
-	}
+	var (
+		h      *handler.HealthCheckHandler
+		e      *echo.Echo
+		expect *httpexpect.Expect
+	)
 
 	newDB := func() (*bun.DB, sqlmock.Sqlmock, *sql.DB) {
 		sqldb, mock, err := sqlmock.New(sqlmock.MonitorPingsOption(true))
 		Expect(err).NotTo(HaveOccurred())
 		return bun.NewDB(sqldb, pgdialect.New()), mock, sqldb
 	}
+
+	BeforeEach(func() {
+		e = setupEcho()
+		expect = newExpect(e)
+	})
 
 	It("returns ok when database ping succeeds", func() {
 		db, mock, sqldb := newDB()
@@ -40,17 +41,17 @@ var _ = Describe("HealthCheckHandler", Label("unit", "handler"), func() {
 		}()
 
 		mock.ExpectPing()
-		h := handler.NewHealthCheckHandler(db)
-		c, rec := newContext()
+		h = handler.NewHealthCheckHandler(db)
+		e.GET("/health", h.HealthCheck)
 
-		err := h.HealthCheck(c)
-		Expect(err).NotTo(HaveOccurred())
-		Expect(rec.Code).To(Equal(http.StatusOK))
+		expect.GET("/health").
+			Expect().
+			Status(http.StatusOK).
+			JSON().
+			Object().
+			HasValue("status", "ok").
+			HasValue("message", "Application is healthy")
 
-		var got map[string]any
-		Expect(json.Unmarshal(rec.Body.Bytes(), &got)).To(Succeed())
-		Expect(got["status"]).To(Equal("ok"))
-		Expect(got["message"]).To(Equal("Application is healthy"))
 		Expect(mock.ExpectationsWereMet()).To(Succeed())
 	})
 
@@ -62,16 +63,16 @@ var _ = Describe("HealthCheckHandler", Label("unit", "handler"), func() {
 		}()
 
 		mock.ExpectPing().WillReturnError(errors.New("db unreachable"))
-		h := handler.NewHealthCheckHandler(db)
-		c, _ := newContext()
+		h = handler.NewHealthCheckHandler(db)
+		e.GET("/health", h.HealthCheck)
 
-		err := h.HealthCheck(c)
-		Expect(err).To(HaveOccurred())
+		expect.GET("/health").
+			Expect().
+			Status(http.StatusInternalServerError).
+			JSON(httpexpect.ContentOpts{MediaType: "application/problem+json"}).
+			Object().
+			HasValue("detail", "Database connection error")
 
-		var appErr *problem.AppError
-		Expect(errors.As(err, &appErr)).To(BeTrue())
-		Expect(appErr.Status).To(Equal(http.StatusInternalServerError))
-		Expect(appErr.Detail).To(Equal("Database connection error"))
 		Expect(mock.ExpectationsWereMet()).To(Succeed())
 	})
 })

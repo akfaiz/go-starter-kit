@@ -6,8 +6,9 @@ import (
 	"github.com/akfaiz/go-starter-kit/internal/delivery/http/handler"
 	"github.com/akfaiz/go-starter-kit/internal/domain"
 	"github.com/akfaiz/go-starter-kit/test/mocks"
+	"github.com/gavv/httpexpect/v2"
+	"github.com/labstack/echo/v5"
 	. "github.com/onsi/ginkgo/v2"
-	. "github.com/onsi/gomega"
 	"go.uber.org/mock/gomock"
 )
 
@@ -16,23 +17,35 @@ var _ = Describe("UserHandler", Label("unit", "handler"), func() {
 		ctrl        *gomock.Controller
 		userService *mocks.MockUserService
 		h           *handler.UserHandler
+		e           *echo.Echo
+		expect      *httpexpect.Expect
 	)
 
 	BeforeEach(func() {
 		ctrl = gomock.NewController(GinkgoT())
 		userService = mocks.NewMockUserService(ctrl)
 		h = handler.NewUserHandler(userService)
+		e = setupEcho()
+		expect = newExpect(e)
 	})
 
 	AfterEach(func() {
 		ctrl.Finish()
 	})
 
-	Describe("ListUsers", func() {
-		It("returns users list with pagination", func() {
-			c, rec := newJSONContext(http.MethodGet, "/users?page=1&limit=5", "")
+	mockUserMiddleware := func(next echo.HandlerFunc) echo.HandlerFunc {
+		return func(c *echo.Context) error {
 			c.Set("user", &domain.JWTClaims{ID: 1})
+			return next(c)
+		}
+	}
 
+	Describe("ListUsers", func() {
+		BeforeEach(func() {
+			e.GET("/users", h.ListUsers, mockUserMiddleware)
+		})
+
+		It("returns users list with pagination", func() {
 			userService.EXPECT().
 				FindAll(gomock.Any(), domain.FindAllParams{Page: 1, Limit: 5, Order: "asc"}).
 				Return(&domain.Paginated[*domain.User]{
@@ -48,15 +61,17 @@ var _ = Describe("UserHandler", Label("unit", "handler"), func() {
 					},
 				}, nil)
 
-			err := h.ListUsers(c)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(rec.Code).To(Equal(http.StatusOK))
+			expect.GET("/users").
+				WithQuery("page", 1).
+				WithQuery("limit", 5).
+				Expect().
+				Status(http.StatusOK).
+				JSON().
+				Object().
+				HasValue("status", 200)
 		})
 
 		It("uses default values when pagination params are missing", func() {
-			c, rec := newJSONContext(http.MethodGet, "/users", "")
-			c.Set("user", &domain.JWTClaims{ID: 1})
-
 			userService.EXPECT().
 				FindAll(gomock.Any(), domain.FindAllParams{Page: 1, Limit: 10, Order: "asc"}).
 				Return(&domain.Paginated[*domain.User]{
@@ -69,9 +84,9 @@ var _ = Describe("UserHandler", Label("unit", "handler"), func() {
 					},
 				}, nil)
 
-			err := h.ListUsers(c)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(rec.Code).To(Equal(http.StatusOK))
+			expect.GET("/users").
+				Expect().
+				Status(http.StatusOK)
 		})
 	})
 })

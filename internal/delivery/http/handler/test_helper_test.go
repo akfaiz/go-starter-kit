@@ -1,21 +1,30 @@
 package handler_test
 
 import (
-	"net/http/httptest"
-	"strings"
+	"net/http"
 
+	"github.com/akfaiz/go-starter-kit/internal/delivery/http/server"
 	appvalidator "github.com/akfaiz/go-starter-kit/pkg/validator"
+	"github.com/gavv/httpexpect/v2"
 	"github.com/labstack/echo/v5"
+	. "github.com/onsi/ginkgo/v2"
 )
 
-func newJSONContext(method, path, payload string) (*echo.Context, *httptest.ResponseRecorder) {
+func newExpect(e *echo.Echo) *httpexpect.Expect {
+	return httpexpect.WithConfig(httpexpect.Config{
+		Client: &http.Client{
+			Transport: httpexpect.NewBinder(e),
+			Jar:       httpexpect.NewCookieJar(),
+		},
+		Reporter: httpexpect.NewRequireReporter(GinkgoT()),
+	})
+}
+
+func setupEcho() *echo.Echo {
 	e := echo.New()
 	v := appvalidator.New()
 	e.Validator = v
 	e.Binder = appvalidator.NewBinder(e.Binder, v)
-	req := httptest.NewRequest(method, path, strings.NewReader(payload))
-	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
-	rec := httptest.NewRecorder()
-	c := e.NewContext(req, rec)
-	return c, rec
+	e.HTTPErrorHandler = server.CustomHTTPErrorHandler
+	return e
 }

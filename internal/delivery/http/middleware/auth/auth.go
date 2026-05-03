@@ -15,6 +15,7 @@ type contextKey string
 const userContextKey contextKey = "user"
 const userKey = "user"
 
+// New is a middleware that verifies the JWT token and sets the user information in the context.
 func New(jwtManager domain.JWTManager) echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c *echo.Context) error {
@@ -34,6 +35,7 @@ func New(jwtManager domain.JWTManager) echo.MiddlewareFunc {
 	}
 }
 
+// NewWithSession is a middleware that verifies the JWT token and checks if the session is valid in the database.
 func NewWithSession(jwtManager domain.JWTManager, sessionRepo domain.SessionRepository) echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c *echo.Context) error {
@@ -100,6 +102,9 @@ func GetUser(c *echo.Context) *domain.JWTClaims {
 }
 
 func GetUserFromContext(ctx context.Context) *domain.JWTClaims {
+	if ctx == nil {
+		return nil
+	}
 	claims, ok := ctx.Value(userContextKey).(*domain.JWTClaims)
 	if !ok {
 		return nil

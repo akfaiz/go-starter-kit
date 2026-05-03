@@ -1,6 +1,7 @@
 package auth_test
 
 import (
+	"context"
 	"errors"
 	"net/http"
 	"net/http/httptest"
@@ -137,5 +138,35 @@ var _ = Describe("Auth middleware", Label("unit", "middleware"), func() {
 		var appErr *problem.AppError
 		Expect(errors.As(err, &appErr)).To(BeTrue())
 		Expect(appErr.Status).To(Equal(http.StatusUnauthorized))
+	})
+
+	Describe("New (without session)", func() {
+		It("sets claims in echo context when token is valid", func() {
+			c := newContext("Bearer good-token")
+			claims := &domain.JWTClaims{ID: 1, Email: "john@example.com"}
+			jwt.EXPECT().VerifyAccessToken("good-token").Return(claims, nil)
+
+			nextCalled := false
+			err := authmw.New(jwt)(func(c *echo.Context) error {
+				nextCalled = true
+				Expect(authmw.GetUser(c)).To(Equal(claims))
+				return nil
+			})(c)
+
+			Expect(err).NotTo(HaveOccurred())
+			Expect(nextCalled).To(BeTrue())
+		})
+	})
+
+	Describe("Helper functions", func() {
+		It("GetUser returns nil when not set", func() {
+			e := echo.New()
+			c := e.NewContext(nil, nil)
+			Expect(authmw.GetUser(c)).To(BeNil())
+		})
+
+		It("GetUserFromContext returns nil when not set", func() {
+			Expect(authmw.GetUserFromContext(context.Background())).To(BeNil())
+		})
 	})
 })

@@ -11,7 +11,7 @@ import (
 
 const ContentTypeProblemJSON = "application/problem+json"
 
-func customHTTPErrorHandler(c *echo.Context, err error) {
+func CustomHTTPErrorHandler(c *echo.Context, err error) {
 	if r, _ := echo.UnwrapResponse(c.Response()); r != nil && r.Committed {
 		return
 	}

@@ -18,7 +18,7 @@ func New(cfg config.Config) *echo.Echo {
 	v := validator.New()
 	e.Validator = v
 	e.Binder = validator.NewBinder(e.Binder, v)
-	e.HTTPErrorHandler = customHTTPErrorHandler
+	e.HTTPErrorHandler = CustomHTTPErrorHandler
 
 	e.Pre(echomiddleware.RemoveTrailingSlash())
 	e.Use(echoopentelemetry.NewMiddleware(cfg.Telemetry.ServiceName))

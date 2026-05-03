@@ -1,15 +1,14 @@
 package handler_test
 
 import (
-	"encoding/json"
-	"errors"
 	"net/http"
 	"time"
 
 	"github.com/akfaiz/go-starter-kit/internal/delivery/http/handler"
 	"github.com/akfaiz/go-starter-kit/internal/domain"
-	"github.com/akfaiz/go-starter-kit/pkg/problem"
 	"github.com/akfaiz/go-starter-kit/test/mocks"
+	"github.com/gavv/httpexpect/v2"
+	"github.com/labstack/echo/v5"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"go.uber.org/mock/gomock"
@@ -20,34 +19,49 @@ var _ = Describe("ProfileHandler", Label("unit", "handler"), func() {
 		ctrl        *gomock.Controller
 		userService *mocks.MockUserService
 		h           *handler.ProfileHandler
+		e           *echo.Echo
+		expect      *httpexpect.Expect
 	)
 
 	BeforeEach(func() {
 		ctrl = gomock.NewController(GinkgoT())
 		userService = mocks.NewMockUserService(ctrl)
 		h = handler.NewProfileHandler(userService)
+		e = setupEcho()
+		expect = newExpect(e)
 	})
 
 	AfterEach(func() {
 		ctrl.Finish()
 	})
 
+	mockUserMiddleware := func(next echo.HandlerFunc) echo.HandlerFunc {
+		return func(c *echo.Context) error {
+			c.Set("user", &domain.JWTClaims{ID: 1})
+			return next(c)
+		}
+	}
+
 	Describe("GetProfile", func() {
+		BeforeEach(func() {
+			e.GET("/profile", h.GetProfile, mockUserMiddleware)
+		})
+
 		It("returns unauthorized when user claims are missing", func() {
-			c, _ := newJSONContext(http.MethodGet, "/profile", "")
+			// Override route for this specific test case to remove middleware
+			e = setupEcho()
+			e.GET("/profile", h.GetProfile)
+			expect = newExpect(e)
 
-			err := h.GetProfile(c)
-			Expect(err).To(HaveOccurred())
-
-			var appErr *problem.AppError
-			Expect(errors.As(err, &appErr)).To(BeTrue())
-			Expect(appErr.Status).To(Equal(http.StatusUnauthorized))
+			expect.GET("/profile").
+				Expect().
+				Status(http.StatusUnauthorized).
+				JSON(httpexpect.ContentOpts{MediaType: "application/problem+json"}).
+				Object().
+				HasValue("title", "Unauthorized access")
 		})
 
 		It("returns user profile when authenticated", func() {
-			c, rec := newJSONContext(http.MethodGet, "/profile", "")
-			c.Set("user", &domain.JWTClaims{ID: 1})
-
 			now := time.Now()
 			userService.EXPECT().FindByID(gomock.Any(), int64(1)).Return(&domain.User{
 				ID:        1,
@@ -57,17 +71,22 @@ var _ = Describe("ProfileHandler", Label("unit", "handler"), func() {
 				UpdatedAt: now,
 			}, nil)
 
-			err := h.GetProfile(c)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(rec.Code).To(Equal(http.StatusOK))
+			expect.GET("/profile").
+				Expect().
+				Status(http.StatusOK).
+				JSON().
+				Object().
+				Value("data").Object().
+				HasValue("email", "john@example.com")
 		})
 	})
 
 	Describe("UpdateProfile", func() {
-		It("updates and returns latest profile", func() {
-			c, rec := newJSONContext(http.MethodPut, "/profile", `{"name":"Jane","email":"jane@example.com"}`)
-			c.Set("user", &domain.JWTClaims{ID: 1})
+		BeforeEach(func() {
+			e.PUT("/profile", h.UpdateProfile, mockUserMiddleware)
+		})
 
+		It("updates and returns latest profile", func() {
 			userService.EXPECT().
 				FindByID(gomock.Any(), int64(1)).
 				Return(&domain.User{ID: 1, Name: "John", Email: "john@example.com"}, nil)
@@ -84,30 +103,36 @@ var _ = Describe("ProfileHandler", Label("unit", "handler"), func() {
 				FindByID(gomock.Any(), int64(1)).
 				Return(&domain.User{ID: 1, Name: "Jane", Email: "jane@example.com"}, nil)
 
-			err := h.UpdateProfile(c)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(rec.Code).To(Equal(http.StatusOK))
+			expect.PUT("/profile").
+				WithJSON(map[string]any{"name": "Jane", "email": "jane@example.com"}).
+				Expect().
+				Status(http.StatusOK).
+				JSON().
+				Object().
+				Value("data").Object().
+				HasValue("name", "Jane")
 		})
 	})
 
 	Describe("ChangePassword", func() {
-		It("changes password and returns success message", func() {
-			c, rec := newJSONContext(
-				http.MethodPatch,
-				"/profile/password",
-				`{"current_password":"oldpass123","new_password":"newpass123","new_password_confirmation":"newpass123"}`,
-			)
-			c.Set("user", &domain.JWTClaims{ID: 1})
+		BeforeEach(func() {
+			e.PATCH("/profile/password", h.ChangePassword, mockUserMiddleware)
+		})
 
+		It("changes password and returns success message", func() {
 			userService.EXPECT().ChangePassword(gomock.Any(), int64(1), "oldpass123", "newpass123").Return(nil)
 
-			err := h.ChangePassword(c)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(rec.Code).To(Equal(http.StatusOK))
-
-			var got map[string]any
-			Expect(json.Unmarshal(rec.Body.Bytes(), &got)).To(Succeed())
-			Expect(got["message"]).To(Equal("Password changed successfully"))
+			expect.PATCH("/profile/password").
+				WithJSON(map[string]any{
+					"current_password":          "oldpass123",
+					"new_password":              "newpass123",
+					"new_password_confirmation": "newpass123",
+				}).
+				Expect().
+				Status(http.StatusOK).
+				JSON().
+				Object().
+				HasValue("message", "Password changed successfully")
 		})
 	})
 })
