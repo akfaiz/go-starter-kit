@@ -39,6 +39,24 @@ Jaeger UI: `http://localhost:16686`
 - **Observability**: Distributed tracing integrated at every level (HTTP, Database, Redis) using **OpenTelemetry**.
 - **Developer Experience**: Includes a `Makefile` for common tasks, `golangci-lint` configuration, and comprehensive unit/E2E testing setups.
 
+## Architecture & Project Structure
+
+This project follows a layered architecture pattern, organized into the following directory structure:
+
+- `cmd/`: Command-line entry points (`serve`, `migrate`).
+- `internal/`: Core application logic, separated by concerns:
+    - `config/`: Application configuration and environment mapping.
+    - `delivery/http/`: HTTP transport layer (handlers, routes, middleware).
+    - `domain/`: Business entities and repository/service interfaces.
+    - `service/`: Implementation of business logic.
+    - `repository/`: Data persistence logic (GORM).
+    - `infra/`: Infrastructure clients (PostgreSQL, Redis, SMTP).
+    - `hash/`: Password hashing and JWT management.
+    - `telemetry/`: Observability and tracing setup.
+- `db/migrations/`: SQL/Go database migration files.
+- `pkg/`: Shared utility packages (validation, error handling, environment helpers).
+- `test/`: Integration and E2E tests, along with mocks.
+
 ## Auth Security
 
 - Access and refresh tokens are stored in Redis per user session.
