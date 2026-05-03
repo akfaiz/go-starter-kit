@@ -98,7 +98,7 @@ var _ = Describe("User Service", Label("unit", "usecase"), func() {
 		})
 		When("user is not found", func() {
 			BeforeEach(func() {
-				userRepoMock.EXPECT().FindByID(ctx, int64(1)).Return(nil, domain.ErrResourceNotFound)
+				userRepoMock.EXPECT().FindByID(gomock.Any(), int64(1)).Return(nil, domain.ErrResourceNotFound)
 			})
 			It("should return an error", func() {
 				Expect(actErr).To(Equal(domain.ErrResourceNotFound))
@@ -106,13 +106,13 @@ var _ = Describe("User Service", Label("unit", "usecase"), func() {
 		})
 		When("name and email change successfully", func() {
 			BeforeEach(func() {
-				userRepoMock.EXPECT().FindByID(ctx, int64(1)).Return(&domain.User{
+				userRepoMock.EXPECT().FindByID(gomock.Any(), int64(1)).Return(&domain.User{
 					ID:    1,
 					Name:  "John Doe",
 					Email: "john.doe@example.com",
 				}, nil)
 				var t *time.Time
-				userRepoMock.EXPECT().Update(ctx, int64(1), &domain.UserUpdate{
+				userRepoMock.EXPECT().Update(gomock.Any(), int64(1), &domain.UserUpdate{
 					Name:            omit.From("Jane Doe"),
 					Email:           omit.From("jane.doe@example.com"),
 					EmailVerifiedAt: omitnull.FromPtr(t),
@@ -124,12 +124,12 @@ var _ = Describe("User Service", Label("unit", "usecase"), func() {
 		})
 		When("name changed but email remains the same", func() {
 			BeforeEach(func() {
-				userRepoMock.EXPECT().FindByID(ctx, int64(1)).Return(&domain.User{
+				userRepoMock.EXPECT().FindByID(gomock.Any(), int64(1)).Return(&domain.User{
 					ID:    1,
 					Name:  "John Doe",
 					Email: inputUser.Email,
 				}, nil)
-				userRepoMock.EXPECT().Update(ctx, int64(1), &domain.UserUpdate{
+				userRepoMock.EXPECT().Update(gomock.Any(), int64(1), &domain.UserUpdate{
 					Name: omit.From("Jane Doe"),
 				}).Return(nil)
 			})
@@ -139,7 +139,7 @@ var _ = Describe("User Service", Label("unit", "usecase"), func() {
 		})
 		When("neither name nor email changed", func() {
 			BeforeEach(func() {
-				userRepoMock.EXPECT().FindByID(ctx, int64(1)).Return(&domain.User{
+				userRepoMock.EXPECT().FindByID(gomock.Any(), int64(1)).Return(&domain.User{
 					ID:    1,
 					Name:  "Jane Doe",
 					Email: "jane.doe@example.com",
@@ -151,13 +151,13 @@ var _ = Describe("User Service", Label("unit", "usecase"), func() {
 		})
 		When("email already exists", func() {
 			BeforeEach(func() {
-				userRepoMock.EXPECT().FindByID(ctx, int64(1)).Return(&domain.User{
+				userRepoMock.EXPECT().FindByID(gomock.Any(), int64(1)).Return(&domain.User{
 					ID:    1,
 					Name:  "John Doe",
 					Email: "john.doe@example.com",
 				}, nil)
 				var t *time.Time
-				userRepoMock.EXPECT().Update(ctx, int64(1), &domain.UserUpdate{
+				userRepoMock.EXPECT().Update(gomock.Any(), int64(1), &domain.UserUpdate{
 					Name:            omit.From("Jane Doe"),
 					Email:           omit.From("jane.doe@example.com"),
 					EmailVerifiedAt: omitnull.FromPtr(t),
@@ -169,13 +169,13 @@ var _ = Describe("User Service", Label("unit", "usecase"), func() {
 		})
 		When("there is an error during update", func() {
 			BeforeEach(func() {
-				userRepoMock.EXPECT().FindByID(ctx, int64(1)).Return(&domain.User{
+				userRepoMock.EXPECT().FindByID(gomock.Any(), int64(1)).Return(&domain.User{
 					ID:    1,
 					Name:  "John Doe",
 					Email: "john.doe@example.com",
 				}, nil)
 				var t *time.Time
-				userRepoMock.EXPECT().Update(ctx, int64(1), &domain.UserUpdate{
+				userRepoMock.EXPECT().Update(gomock.Any(), int64(1), &domain.UserUpdate{
 					Name:            omit.From("Jane Doe"),
 					Email:           omit.From("jane.doe@example.com"),
 					EmailVerifiedAt: omitnull.FromPtr(t),
@@ -203,7 +203,7 @@ var _ = Describe("User Service", Label("unit", "usecase"), func() {
 		})
 		When("user is not found", func() {
 			BeforeEach(func() {
-				userRepoMock.EXPECT().FindByID(ctx, int64(1)).Return(nil, domain.ErrResourceNotFound)
+				userRepoMock.EXPECT().FindByID(gomock.Any(), int64(1)).Return(nil, domain.ErrResourceNotFound)
 			})
 			It("should return an error", func() {
 				Expect(actErr).To(Equal(domain.ErrResourceNotFound))
@@ -211,7 +211,7 @@ var _ = Describe("User Service", Label("unit", "usecase"), func() {
 		})
 		When("current password does not match", func() {
 			BeforeEach(func() {
-				userRepoMock.EXPECT().FindByID(ctx, int64(1)).Return(&domain.User{
+				userRepoMock.EXPECT().FindByID(gomock.Any(), int64(1)).Return(&domain.User{
 					ID:       1,
 					Password: "hashedpassword",
 				}, nil)
@@ -223,7 +223,7 @@ var _ = Describe("User Service", Label("unit", "usecase"), func() {
 		})
 		When("there is an error during password verification", func() {
 			BeforeEach(func() {
-				userRepoMock.EXPECT().FindByID(ctx, int64(1)).Return(&domain.User{
+				userRepoMock.EXPECT().FindByID(gomock.Any(), int64(1)).Return(&domain.User{
 					ID:       1,
 					Password: "hashedpassword",
 				}, nil)
@@ -237,13 +237,13 @@ var _ = Describe("User Service", Label("unit", "usecase"), func() {
 		})
 		When("password is changed successfully", func() {
 			BeforeEach(func() {
-				userRepoMock.EXPECT().FindByID(ctx, int64(1)).Return(&domain.User{
+				userRepoMock.EXPECT().FindByID(gomock.Any(), int64(1)).Return(&domain.User{
 					ID:       1,
 					Password: "hashedpassword",
 				}, nil)
 				passwordHasherMock.EXPECT().Verify(currentPassword, "hashedpassword").Return(true, nil)
 				passwordHasherMock.EXPECT().Hash(newPassword).Return("newhashedpassword", nil)
-				userRepoMock.EXPECT().Update(ctx, int64(1), &domain.UserUpdate{
+				userRepoMock.EXPECT().Update(gomock.Any(), int64(1), &domain.UserUpdate{
 					Password: omit.From("newhashedpassword"),
 				}).Return(nil)
 			})
@@ -253,7 +253,7 @@ var _ = Describe("User Service", Label("unit", "usecase"), func() {
 		})
 		When("there is an error during password hashing", func() {
 			BeforeEach(func() {
-				userRepoMock.EXPECT().FindByID(ctx, int64(1)).Return(&domain.User{
+				userRepoMock.EXPECT().FindByID(gomock.Any(), int64(1)).Return(&domain.User{
 					ID:       1,
 					Password: "hashedpassword",
 				}, nil)
@@ -266,13 +266,13 @@ var _ = Describe("User Service", Label("unit", "usecase"), func() {
 		})
 		When("there is an error during update", func() {
 			BeforeEach(func() {
-				userRepoMock.EXPECT().FindByID(ctx, int64(1)).Return(&domain.User{
+				userRepoMock.EXPECT().FindByID(gomock.Any(), int64(1)).Return(&domain.User{
 					ID:       1,
 					Password: "hashedpassword",
 				}, nil)
 				passwordHasherMock.EXPECT().Verify(currentPassword, "hashedpassword").Return(true, nil)
 				passwordHasherMock.EXPECT().Hash(newPassword).Return("newhashedpassword", nil)
-				userRepoMock.EXPECT().Update(ctx, int64(1), &domain.UserUpdate{
+				userRepoMock.EXPECT().Update(gomock.Any(), int64(1), &domain.UserUpdate{
 					Password: omit.From("newhashedpassword"),
 				}).Return(errors.New("db down"))
 			})
@@ -296,7 +296,7 @@ var _ = Describe("User Service", Label("unit", "usecase"), func() {
 		})
 		When("user is not found", func() {
 			BeforeEach(func() {
-				userRepoMock.EXPECT().FindByID(ctx, int64(1)).Return(nil, domain.ErrResourceNotFound)
+				userRepoMock.EXPECT().FindByID(gomock.Any(), int64(1)).Return(nil, domain.ErrResourceNotFound)
 			})
 			It("should return an error", func() {
 				Expect(actErr).To(Equal(domain.ErrResourceNotFound))
@@ -304,7 +304,7 @@ var _ = Describe("User Service", Label("unit", "usecase"), func() {
 		})
 		When("password does not match", func() {
 			BeforeEach(func() {
-				userRepoMock.EXPECT().FindByID(ctx, int64(1)).Return(&domain.User{
+				userRepoMock.EXPECT().FindByID(gomock.Any(), int64(1)).Return(&domain.User{
 					ID:       1,
 					Password: "hashedpassword",
 				}, nil)
@@ -316,7 +316,7 @@ var _ = Describe("User Service", Label("unit", "usecase"), func() {
 		})
 		When("there is an error during password verification", func() {
 			BeforeEach(func() {
-				userRepoMock.EXPECT().FindByID(ctx, int64(1)).Return(&domain.User{
+				userRepoMock.EXPECT().FindByID(gomock.Any(), int64(1)).Return(&domain.User{
 					ID:       1,
 					Password: "hashedpassword",
 				}, nil)
@@ -328,12 +328,12 @@ var _ = Describe("User Service", Label("unit", "usecase"), func() {
 		})
 		When("deletion is successful", func() {
 			BeforeEach(func() {
-				userRepoMock.EXPECT().FindByID(ctx, int64(1)).Return(&domain.User{
+				userRepoMock.EXPECT().FindByID(gomock.Any(), int64(1)).Return(&domain.User{
 					ID:       1,
 					Password: "hashedpassword",
 				}, nil)
 				passwordHasherMock.EXPECT().Verify(password, "hashedpassword").Return(true, nil)
-				userRepoMock.EXPECT().Delete(ctx, int64(1)).Return(nil)
+				userRepoMock.EXPECT().Delete(gomock.Any(), int64(1)).Return(nil)
 			})
 			It("should delete the user successfully", func() {
 				Expect(actErr).To(BeNil())
@@ -341,12 +341,12 @@ var _ = Describe("User Service", Label("unit", "usecase"), func() {
 		})
 		When("there is an error during deletion", func() {
 			BeforeEach(func() {
-				userRepoMock.EXPECT().FindByID(ctx, int64(1)).Return(&domain.User{
+				userRepoMock.EXPECT().FindByID(gomock.Any(), int64(1)).Return(&domain.User{
 					ID:       1,
 					Password: "hashedpassword",
 				}, nil)
 				passwordHasherMock.EXPECT().Verify(password, "hashedpassword").Return(true, nil)
-				userRepoMock.EXPECT().Delete(ctx, int64(1)).Return(errors.New("db down"))
+				userRepoMock.EXPECT().Delete(gomock.Any(), int64(1)).Return(errors.New("db down"))
 			})
 			It("bubbles the error", func() {
 				Expect(actErr).To(HaveOccurred())

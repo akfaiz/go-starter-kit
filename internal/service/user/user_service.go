@@ -7,7 +7,11 @@ import (
 	"github.com/aarondl/opt/omit"
 	"github.com/aarondl/opt/omitnull"
 	"github.com/akfaiz/go-starter-kit/internal/domain"
+	"github.com/akfaiz/go-starter-kit/internal/telemetry"
+	"go.opentelemetry.io/otel"
 )
+
+var tracer = otel.Tracer("user-service")
 
 type service struct {
 	userRepo       domain.UserRepository
@@ -25,10 +29,16 @@ func NewService(
 }
 
 func (s *service) FindByID(ctx context.Context, id int64) (*domain.User, error) {
+	ctx, span := telemetry.StartSpan(ctx, tracer)
+	defer span.End()
+
 	return s.userRepo.FindByID(ctx, id)
 }
 
 func (s *service) UpdateProfile(ctx context.Context, id int64, user *domain.User) error {
+	ctx, span := telemetry.StartSpan(ctx, tracer)
+	defer span.End()
+
 	oldUser, err := s.userRepo.FindByID(ctx, id)
 	if err != nil {
 		return err
@@ -51,6 +61,9 @@ func (s *service) UpdateProfile(ctx context.Context, id int64, user *domain.User
 }
 
 func (s *service) ChangePassword(ctx context.Context, id int64, currentPassword, newPassword string) error {
+	ctx, span := telemetry.StartSpan(ctx, tracer)
+	defer span.End()
+
 	user, err := s.userRepo.FindByID(ctx, id)
 	if err != nil {
 		return err
@@ -73,6 +86,9 @@ func (s *service) ChangePassword(ctx context.Context, id int64, currentPassword,
 }
 
 func (s *service) Delete(ctx context.Context, id int64, password string) error {
+	ctx, span := telemetry.StartSpan(ctx, tracer)
+	defer span.End()
+
 	user, err := s.userRepo.FindByID(ctx, id)
 	if err != nil {
 		return err

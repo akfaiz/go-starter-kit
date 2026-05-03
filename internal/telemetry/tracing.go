@@ -3,6 +3,8 @@ package telemetry
 import (
 	"context"
 	"fmt"
+	"runtime"
+	"strings"
 	"time"
 
 	"github.com/akfaiz/go-starter-kit/internal/config"
@@ -12,6 +14,7 @@ import (
 	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/sdk/resource"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
+	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/fx"
 )
 
@@ -69,4 +72,31 @@ func RegisterLifecycle(lc fx.Lifecycle, tp *sdktrace.TracerProvider) {
 			return tp.Shutdown(shutdownCtx)
 		},
 	})
+}
+
+// StartSpan starts a new span using the caller's function name.
+func StartSpan(ctx context.Context, tracer trace.Tracer) (context.Context, trace.Span) {
+	pc, _, _, ok := runtime.Caller(1)
+	if !ok {
+		return tracer.Start(ctx, "unknown") //nolint:spancheck // factory function
+	}
+
+	fn := runtime.FuncForPC(pc)
+	if fn == nil {
+		return tracer.Start(ctx, "unknown") //nolint:spancheck // factory function
+	}
+
+	name := fn.Name()
+	// Clean up the name (e.g., github.com/user/repo/internal/service.(*service).Login -> service.Login)
+	if lastSlash := strings.LastIndex(name, "/"); lastSlash >= 0 {
+		name = name[lastSlash+1:]
+	}
+	if firstDot := strings.Index(name, "."); firstDot >= 0 {
+		// Keep everything after the first dot in the last segment (e.g. auth.(*service).Login -> auth.(*service).Login)
+		// Or further simplify:
+		name = strings.ReplaceAll(name, "(*service).", "")
+		name = strings.ReplaceAll(name, "(*repository).", "")
+	}
+
+	return tracer.Start(ctx, name) //nolint:spancheck // factory function
 }

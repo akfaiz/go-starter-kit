@@ -8,9 +8,13 @@ import (
 
 	"github.com/akfaiz/go-starter-kit/internal/domain"
 	"github.com/akfaiz/go-starter-kit/internal/model"
+	"github.com/akfaiz/go-starter-kit/internal/telemetry"
 	"github.com/uptrace/bun"
 	"github.com/uptrace/bun/driver/pgdriver"
+	"go.opentelemetry.io/otel"
 )
+
+var tracer = otel.Tracer("user-repository")
 
 type repository struct {
 	db *bun.DB
@@ -21,6 +25,9 @@ func NewRepository(db *bun.DB) domain.UserRepository {
 }
 
 func (r *repository) Create(ctx context.Context, user *domain.User) error {
+	ctx, span := telemetry.StartSpan(ctx, tracer)
+	defer span.End()
+
 	m := model.NewUserFromDomain(user)
 	_, err := r.db.NewInsert().Model(m).Exec(ctx)
 	if err != nil {
@@ -39,6 +46,9 @@ func (r *repository) Create(ctx context.Context, user *domain.User) error {
 }
 
 func (r *repository) FindByEmail(ctx context.Context, email string) (*domain.User, error) {
+	ctx, span := telemetry.StartSpan(ctx, tracer)
+	defer span.End()
+
 	user := new(model.User)
 	err := r.db.NewSelect().Model(user).Where("email = ?", email).Scan(ctx)
 	if err != nil {
@@ -51,6 +61,9 @@ func (r *repository) FindByEmail(ctx context.Context, email string) (*domain.Use
 }
 
 func (r *repository) FindByID(ctx context.Context, id int64) (*domain.User, error) {
+	ctx, span := telemetry.StartSpan(ctx, tracer)
+	defer span.End()
+
 	user := new(model.User)
 	err := r.db.NewSelect().Model(user).Where("id = ?", id).Scan(ctx)
 	if err != nil {
@@ -63,6 +76,9 @@ func (r *repository) FindByID(ctx context.Context, id int64) (*domain.User, erro
 }
 
 func (r *repository) Update(ctx context.Context, id int64, data *domain.UserUpdate) error {
+	ctx, span := telemetry.StartSpan(ctx, tracer)
+	defer span.End()
+
 	query := r.db.NewUpdate().Model((*model.User)(nil)).Where("id = ?", id)
 	query = model.ApplyUserUpdate(query, data)
 	res, err := query.Exec(ctx)
@@ -87,6 +103,9 @@ func (r *repository) Update(ctx context.Context, id int64, data *domain.UserUpda
 }
 
 func (r *repository) Delete(ctx context.Context, id int64) error {
+	ctx, span := telemetry.StartSpan(ctx, tracer)
+	defer span.End()
+
 	res, err := r.db.NewDelete().Model(&model.User{ID: id}).WherePK().Exec(ctx)
 	if err != nil {
 		return err

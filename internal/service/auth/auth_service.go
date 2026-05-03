@@ -11,7 +11,11 @@ import (
 	"github.com/akfaiz/go-mailgen"
 	"github.com/akfaiz/go-starter-kit/internal/config"
 	"github.com/akfaiz/go-starter-kit/internal/domain"
+	"github.com/akfaiz/go-starter-kit/internal/telemetry"
+	"go.opentelemetry.io/otel"
 )
+
+var tracer = otel.Tracer("auth-service")
 
 type service struct {
 	cfg                    config.Config
@@ -44,6 +48,9 @@ func NewService(
 }
 
 func (s *service) Register(ctx context.Context, user *domain.User) (*domain.PairToken, error) {
+	ctx, span := telemetry.StartSpan(ctx, tracer)
+	defer span.End()
+
 	hashedPassword, err := s.passwordHasher.Hash(user.Password)
 	if err != nil {
 		return nil, err
@@ -61,6 +68,9 @@ func (s *service) Register(ctx context.Context, user *domain.User) (*domain.Pair
 }
 
 func (s *service) Login(ctx context.Context, email, password string) (*domain.PairToken, error) {
+	ctx, span := telemetry.StartSpan(ctx, tracer)
+	defer span.End()
+
 	user, err := s.userRepo.FindByEmail(ctx, email)
 	if err != nil {
 		return nil, domain.ErrInvalidCredentials
@@ -82,6 +92,9 @@ func (s *service) Login(ctx context.Context, email, password string) (*domain.Pa
 }
 
 func (s *service) RefreshToken(ctx context.Context, refreshToken string) (*domain.PairToken, error) {
+	ctx, span := telemetry.StartSpan(ctx, tracer)
+	defer span.End()
+
 	claims, err := s.jwtManager.VerifyRefreshToken(refreshToken)
 	if err != nil {
 		return nil, domain.ErrInvalidToken
@@ -111,6 +124,9 @@ func (s *service) RefreshToken(ctx context.Context, refreshToken string) (*domai
 }
 
 func (s *service) SendForgotPasswordOTP(ctx context.Context, email string) error {
+	ctx, span := telemetry.StartSpan(ctx, tracer)
+	defer span.End()
+
 	user, err := s.userRepo.FindByEmail(ctx, email)
 	if err != nil {
 		if errors.Is(err, domain.ErrResourceNotFound) {
@@ -144,11 +160,17 @@ func (s *service) SendForgotPasswordOTP(ctx context.Context, email string) error
 }
 
 func (s *service) VerifyForgotPasswordOTP(ctx context.Context, email, otp string) error {
+	ctx, span := telemetry.StartSpan(ctx, tracer)
+	defer span.End()
+
 	_, err := s.validateForgotPasswordOTP(ctx, email, otp)
 	return err
 }
 
 func (s *service) ResetPasswordWithOTP(ctx context.Context, email, otp, newPassword string) error {
+	ctx, span := telemetry.StartSpan(ctx, tracer)
+	defer span.End()
+
 	user, err := s.validateForgotPasswordOTP(ctx, email, otp)
 	if err != nil {
 		return err
@@ -167,6 +189,9 @@ func (s *service) ResetPasswordWithOTP(ctx context.Context, email, otp, newPassw
 }
 
 func (s *service) issuePairToken(ctx context.Context, claims *domain.JWTClaims) (*domain.PairToken, error) {
+	ctx, span := telemetry.StartSpan(ctx, tracer)
+	defer span.End()
+
 	pairToken, err := s.jwtManager.GeneratePairToken(claims)
 	if err != nil {
 		return nil, err
@@ -185,6 +210,9 @@ func (s *service) issuePairToken(ctx context.Context, claims *domain.JWTClaims) 
 }
 
 func (s *service) validateForgotPasswordOTP(ctx context.Context, email, otp string) (*domain.User, error) {
+	ctx, span := telemetry.StartSpan(ctx, tracer)
+	defer span.End()
+
 	user, err := s.userRepo.FindByEmail(ctx, email)
 	if err != nil {
 		if errors.Is(err, domain.ErrResourceNotFound) {
