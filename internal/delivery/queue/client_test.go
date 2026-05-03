@@ -10,6 +10,11 @@ import (
 	"github.com/hibiken/asynq"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/sdk/trace"
+	"go.opentelemetry.io/otel/sdk/trace/tracetest"
+	semconv "go.opentelemetry.io/otel/semconv/v1.26.0"
+	oteltrace "go.opentelemetry.io/otel/trace"
 )
 
 func TestNewClient(t *testing.T) {
@@ -23,6 +28,15 @@ func TestNewClient(t *testing.T) {
 }
 
 func TestClient_EnqueueContext(t *testing.T) {
+	prevTracerProvider := otel.GetTracerProvider()
+	exporter := tracetest.NewInMemoryExporter()
+	tp := trace.NewTracerProvider(trace.WithSyncer(exporter))
+	otel.SetTracerProvider(tp)
+	t.Cleanup(func() {
+		_ = tp.Shutdown(context.Background())
+		otel.SetTracerProvider(prevTracerProvider)
+	})
+
 	mr, err := miniredis.Run()
 	require.NoError(t, err)
 	t.Cleanup(mr.Close)
@@ -53,4 +67,12 @@ func TestClient_EnqueueContext(t *testing.T) {
 	assert.Equal(t, info.ID, pending[0].ID)
 	assert.Equal(t, queue.TypeMailSend, pending[0].Type)
 	assert.Equal(t, task.Payload(), pending[0].Payload)
+
+	spans := exporter.GetSpans()
+	require.Len(t, spans, 1)
+	assert.Equal(t, "mail:send publish", spans[0].Name)
+	assert.Equal(t, oteltrace.SpanKindProducer, spans[0].SpanKind)
+	assert.Contains(t, spans[0].Attributes, semconv.MessagingSystemKey.String("asynq"))
+	assert.Contains(t, spans[0].Attributes, semconv.MessagingDestinationNameKey.String(queue.TypeMailSend))
+	assert.Contains(t, spans[0].Attributes, semconv.MessagingOperationTypePublish)
 }

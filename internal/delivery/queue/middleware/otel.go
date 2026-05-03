@@ -6,12 +6,10 @@ import (
 
 	"github.com/hibiken/asynq"
 	"go.opentelemetry.io/otel"
-	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/propagation"
+	semconv "go.opentelemetry.io/otel/semconv/v1.26.0"
 	"go.opentelemetry.io/otel/trace"
 )
-
-var tracer = otel.Tracer("asynq-worker")
 
 // Otel is an asynq middleware that adds OpenTelemetry tracing to task processing.
 func Otel(h asynq.Handler) asynq.Handler {
@@ -19,10 +17,18 @@ func Otel(h asynq.Handler) asynq.Handler {
 		headers := t.Headers()
 		ctx = otel.GetTextMapPropagator().Extract(ctx, propagation.MapCarrier(headers))
 
-		spanName := fmt.Sprintf("asynq: %s", t.Type())
-		ctx, span := tracer.Start(ctx, spanName, trace.WithAttributes(
-			attribute.String("asynq.task_type", t.Type()),
-		))
+		spanName := fmt.Sprintf("%s process", t.Type())
+		tracer := otel.Tracer("asynq-worker")
+		ctx, span := tracer.Start(
+			ctx,
+			spanName,
+			trace.WithSpanKind(trace.SpanKindConsumer),
+			trace.WithAttributes(
+				semconv.MessagingSystemKey.String("asynq"),
+				semconv.MessagingDestinationNameKey.String(t.Type()),
+				semconv.MessagingOperationTypeDeliver,
+			),
+		)
 		defer span.End()
 
 		err := h.ProcessTask(ctx, t)
