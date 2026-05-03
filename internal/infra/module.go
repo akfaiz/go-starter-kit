@@ -5,7 +5,7 @@ import (
 	"go.uber.org/fx"
 )
 
-var Module = fx.Module("provider",
+var Module = fx.Module("infra",
 	fx.Provide(
 		NewDatabase,
 		NewRedisClient,

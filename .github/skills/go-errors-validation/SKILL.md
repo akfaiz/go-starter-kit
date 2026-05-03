@@ -58,11 +58,24 @@ type CreateUserRequest struct {
 }
 ```
 
-## Custom Errors in Services
-If a service needs to return a validation error:
+## Domain Errors in Services
+**Crucial Rule:** Services must *never* return HTTP-specific errors, `pkg/problem`, or `pkg/validator` errors. Services must return **Domain Errors** defined in `internal/domain/error.go` (e.g., `domain.ErrUserNotFound`).
+
+## Mapping Errors in Handlers
+Handlers are responsible for mapping Domain Errors to HTTP Problems or Validation Errors, and wrapping unexpected errors:
+
 ```go
-if exists {
-    return validator.NewError("email", "Email already registered")
+func (h *MyHandler) Create(c *echo.Context) error {
+    // ...
+    err := h.service.Create(ctx, req.ToDomain())
+    if err != nil {
+        // 1. Map known domain errors to HTTP/Validation errors
+        if errors.Is(err, domain.ErrEmailAlreadyExists) {
+            return validator.NewError("email", "Email already registered")
+        }
+        // 2. Wrap unknown/unexpected errors
+        return problem.Wrap(err, problem.ErrInternalServer)
+    }
+    // ...
 }
 ```
-The handler or error middleware will automatically map this to a `problem.ErrValidation`.

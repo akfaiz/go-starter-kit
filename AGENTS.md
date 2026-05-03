@@ -21,6 +21,14 @@
 - Keep layer boundaries explicit (`delivery -> service -> repository`) and avoid bypassing service logic from handlers.
 - Use descriptive snake_case filenames for multiword files (for example `auth_handler.go`, `user_repository.go`).
 
+## Architectural Boundaries & Mappings
+- **DTO to Domain:** Handlers must convert request DTOs to domain entities using `dto.ToDomain()` before calling services.
+- **Domain to Model:** Repositories must convert domain entities to database models using factory functions like `model.New[Entity]FromDomain(entity)`.
+- **Model to Domain:** Repositories must convert database models to domain entities using `modelEntity.ToDomain()`.
+- **Domain Errors:** Services and internal logic must strictly return **Domain Errors** (defined in `internal/domain/error.go`).
+- **Error Mapping:** Handlers are responsible for mapping domain errors to HTTP-specific responses (using `pkg/problem` or `pkg/validator`).
+- **Service Isolation:** The service layer must never import `pkg/problem`, `pkg/validator`, or `internal/model`.
+
 ## Testing Guidelines
 - Primary test command: `make test`.
 - Tests use Go `testing` with `testify`; Ginkgo/Gomega suites are also present for some modules.

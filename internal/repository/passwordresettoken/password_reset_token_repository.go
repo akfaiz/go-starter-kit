@@ -19,11 +19,7 @@ func NewRepository(db *bun.DB) domain.PasswordResetTokenRepository {
 }
 
 func (r *repository) Create(ctx context.Context, token *domain.PasswordResetToken) error {
-	m := &model.PasswordResetToken{
-		UserID:    token.UserID,
-		Token:     token.Token,
-		ExpiresAt: token.ExpiresAt,
-	}
+	m := model.NewPasswordResetTokenFromDomain(token)
 	_, err := r.db.NewInsert().Model(m).
 		On("CONFLICT (user_id) DO UPDATE SET token = EXCLUDED.token, expires_at = EXCLUDED.expires_at").
 		Exec(ctx)

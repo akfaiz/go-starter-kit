@@ -10,7 +10,8 @@ This project uses **Bun ORM** for PostgreSQL.
 ## Defining Models
 Models live in `internal/model/`.
 - Use `bun` tags for column mapping and constraints.
-- Always include `ToDomain()` method to map to domain entities.
+- Always include a factory function `New[Model]FromDomain(e *domain.Entity) *Model` to map from domain entities.
+- Always include a `ToDomain() *domain.Entity` method to map to domain entities.
 - Use `ApplyXxxUpdate` helper for partial updates (utilizing `github.com/aarondl/opt`).
 
 Example:

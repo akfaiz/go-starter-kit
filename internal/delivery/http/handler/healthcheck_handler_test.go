@@ -9,6 +9,7 @@ import (
 
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/akfaiz/go-starter-kit/internal/delivery/http/handler"
+	"github.com/akfaiz/go-starter-kit/pkg/problem"
 	"github.com/labstack/echo/v5"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -62,16 +63,15 @@ var _ = Describe("HealthCheckHandler", Label("unit", "handler"), func() {
 
 		mock.ExpectPing().WillReturnError(errors.New("db unreachable"))
 		h := handler.NewHealthCheckHandler(db)
-		c, rec := newContext()
+		c, _ := newContext()
 
 		err := h.HealthCheck(c)
-		Expect(err).NotTo(HaveOccurred())
-		Expect(rec.Code).To(Equal(http.StatusInternalServerError))
+		Expect(err).To(HaveOccurred())
 
-		var got map[string]any
-		Expect(json.Unmarshal(rec.Body.Bytes(), &got)).To(Succeed())
-		Expect(got["status"]).To(Equal("error"))
-		Expect(got["message"]).To(Equal("Database connection error"))
+		var appErr *problem.AppError
+		Expect(errors.As(err, &appErr)).To(BeTrue())
+		Expect(appErr.Status).To(Equal(http.StatusInternalServerError))
+		Expect(appErr.Detail).To(Equal("Database connection error"))
 		Expect(mock.ExpectationsWereMet()).To(Succeed())
 	})
 })

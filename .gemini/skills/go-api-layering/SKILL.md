@@ -13,21 +13,26 @@ This project follows a structured layering pattern: `Delivery (HTTP) -> Service 
 - **Location**: `internal/delivery/http/handler/`
 - **Role**: Handle HTTP requests, bind/validate DTOs, call service methods, and return response DTOs.
 - **Rules**:
-  - Use `dto` package for request/response structures.
+  - Use `dto` package for request/response structures. Add `ToDomain()` methods to DTOs to map to domain entities before calling services.
   - Inject `*validator.Validate` and use `h.validator.ValidateContext(c.Request().Context(), &req)` for localized validation.
-  - Return `error` from handlers; Echo middleware handles mapping to RFC 7807.
+  - Map Domain Errors to HTTP errors (`problem.AppError` or `validator.ValidationError`).
+  - Wrap unexpected errors using `problem.Wrap(err, problem.ErrInternalServer)`.
   - Avoid business logic; delegate to the Service layer.
 
 ### 2. Service (Business Logic)
 - **Location**: `internal/service/`
-- **Role**: Orchestrate business rules, call multiple repositories, handle domain logic, and map errors to validation/domain errors.
+- **Role**: Orchestrate business rules, call multiple repositories, and handle domain logic.
 - **Rules**:
   - Depend on interfaces defined in `internal/domain/`.
-  - Return domain entities or result pairs.
+  - Accept and return domain entities.
+  - **Strict Boundary**: Return **Domain Errors** (`internal/domain/error.go`). Never import `pkg/problem`, `pkg/validator`, or `internal/model`.
 
 ### 3. Repository (Data Access)
 - **Location**: `internal/repository/`
 - **Role**: Bun ORM specific logic, CRUD operations, and mapping between `model` (DB) and `domain` (Business) entities.
+- **Rules**:
+  - Use `model.New[Entity]FromDomain(domainEntity)` to map Domain -> Model.
+  - Use `modelEntity.ToDomain()` to map Model -> Domain.
 - **Rules**:
   - Keep it focused on persistence.
   - Handle DB-specific errors (e.g., unique constraints) and wrap them in domain errors.

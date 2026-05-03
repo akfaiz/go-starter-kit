@@ -11,9 +11,6 @@ import (
 	"github.com/akfaiz/go-mailgen"
 	"github.com/akfaiz/go-starter-kit/internal/config"
 	"github.com/akfaiz/go-starter-kit/internal/domain"
-	"github.com/akfaiz/go-starter-kit/pkg/problem"
-	"github.com/akfaiz/go-starter-kit/pkg/validator"
-	"github.com/invopop/ctxi18n/i18n"
 )
 
 type service struct {
@@ -53,9 +50,6 @@ func (s *service) Register(ctx context.Context, user *domain.User) (*domain.Pair
 	}
 	user.Password = hashedPassword
 	if err := s.userRepo.Create(ctx, user); err != nil {
-		if errors.Is(err, domain.ErrEmailAlreadyExists) {
-			return nil, validator.NewError("email", "Email already registered")
-		}
 		return nil, err
 	}
 
@@ -69,7 +63,7 @@ func (s *service) Register(ctx context.Context, user *domain.User) (*domain.Pair
 func (s *service) Login(ctx context.Context, email, password string) (*domain.PairToken, error) {
 	user, err := s.userRepo.FindByEmail(ctx, email)
 	if err != nil {
-		return nil, validator.NewError("email", i18n.T(ctx, "auth.failed"))
+		return nil, domain.ErrInvalidCredentials
 	}
 
 	match, err := s.passwordHasher.Verify(password, user.Password)
@@ -77,7 +71,7 @@ func (s *service) Login(ctx context.Context, email, password string) (*domain.Pa
 		return nil, err
 	}
 	if !match {
-		return nil, validator.NewError("email", i18n.T(ctx, "auth.failed"))
+		return nil, domain.ErrInvalidCredentials
 	}
 	claims := &domain.JWTClaims{
 		ID:    user.ID,
@@ -90,18 +84,18 @@ func (s *service) Login(ctx context.Context, email, password string) (*domain.Pa
 func (s *service) RefreshToken(ctx context.Context, refreshToken string) (*domain.PairToken, error) {
 	claims, err := s.jwtManager.VerifyRefreshToken(refreshToken)
 	if err != nil {
-		return nil, err
+		return nil, domain.ErrInvalidToken
 	}
 
 	storedRefreshToken, err := s.sessionRepo.GetRefreshToken(ctx, claims.ID)
 	if err != nil {
 		if errors.Is(err, domain.ErrResourceNotFound) {
-			return nil, problem.ErrUnauthorized("invalid refresh token")
+			return nil, domain.ErrInvalidToken
 		}
 		return nil, err
 	}
 	if storedRefreshToken != refreshToken {
-		return nil, problem.ErrUnauthorized("invalid refresh token")
+		return nil, domain.ErrInvalidToken
 	}
 
 	user, err := s.userRepo.FindByID(ctx, claims.ID)
@@ -120,7 +114,7 @@ func (s *service) SendForgotPasswordOTP(ctx context.Context, email string) error
 	user, err := s.userRepo.FindByEmail(ctx, email)
 	if err != nil {
 		if errors.Is(err, domain.ErrResourceNotFound) {
-			return validator.NewError("email", i18n.T(ctx, "passwords.user"))
+			return domain.ErrUserNotFound
 		}
 		return err
 	}
@@ -194,7 +188,7 @@ func (s *service) validateForgotPasswordOTP(ctx context.Context, email, otp stri
 	user, err := s.userRepo.FindByEmail(ctx, email)
 	if err != nil {
 		if errors.Is(err, domain.ErrResourceNotFound) {
-			return nil, problem.ErrBadRequest(i18n.T(ctx, "passwords.user"))
+			return nil, domain.ErrUserNotFound
 		}
 		return nil, err
 	}
@@ -202,13 +196,13 @@ func (s *service) validateForgotPasswordOTP(ctx context.Context, email, otp stri
 	stored, err := s.passwordResetTokenRepo.FindOne(ctx, user.ID)
 	if err != nil {
 		if errors.Is(err, domain.ErrResourceNotFound) {
-			return nil, problem.ErrBadRequest(i18n.T(ctx, "passwords.token"))
+			return nil, domain.ErrInvalidToken
 		}
 		return nil, err
 	}
 
 	if time.Now().After(stored.ExpiresAt) {
-		return nil, problem.ErrBadRequest(i18n.T(ctx, "passwords.token"))
+		return nil, domain.ErrTokenExpired
 	}
 
 	match, err := s.passwordHasher.Verify(otp, stored.Token)
@@ -216,7 +210,7 @@ func (s *service) validateForgotPasswordOTP(ctx context.Context, email, otp stri
 		return nil, err
 	}
 	if !match {
-		return nil, problem.ErrBadRequest(i18n.T(ctx, "passwords.token"))
+		return nil, domain.ErrInvalidToken
 	}
 
 	return user, nil

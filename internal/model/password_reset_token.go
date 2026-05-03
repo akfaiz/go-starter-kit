@@ -14,6 +14,19 @@ type PasswordResetToken struct {
 	CreatedAt time.Time `bun:"created_at,notnull,default:current_timestamp"`
 }
 
+func NewPasswordResetTokenFromDomain(t *domain.PasswordResetToken) *PasswordResetToken {
+	if t == nil {
+		return nil
+	}
+	return &PasswordResetToken{
+		ID:        t.ID,
+		UserID:    t.UserID,
+		Token:     t.Token,
+		ExpiresAt: t.ExpiresAt,
+		CreatedAt: t.CreatedAt,
+	}
+}
+
 func (ut *PasswordResetToken) ToDomain() *domain.PasswordResetToken {
 	return &domain.PasswordResetToken{
 		ID:        ut.ID,

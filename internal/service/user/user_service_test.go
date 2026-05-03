@@ -10,7 +10,6 @@ import (
 	"github.com/aarondl/opt/omitnull"
 	"github.com/akfaiz/go-starter-kit/internal/domain"
 	"github.com/akfaiz/go-starter-kit/internal/service/user"
-	"github.com/akfaiz/go-starter-kit/pkg/validator"
 	"github.com/akfaiz/go-starter-kit/test/mocks"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -164,11 +163,8 @@ var _ = Describe("User Service", Label("unit", "usecase"), func() {
 					EmailVerifiedAt: omitnull.FromPtr(t),
 				}).Return(domain.ErrEmailAlreadyExists)
 			})
-			It("should return a validation error", func() {
-				var vErr *validator.ValidationError
-				Expect(errors.As(actErr, &vErr)).To(BeTrue())
-				Expect(vErr.First().Field).To(Equal("email"))
-				Expect(vErr.First().Message).To(Equal("Email already exists"))
+			It("should return a domain error", func() {
+				Expect(errors.Is(actErr, domain.ErrEmailAlreadyExists)).To(BeTrue())
 			})
 		})
 		When("there is an error during update", func() {
@@ -221,11 +217,8 @@ var _ = Describe("User Service", Label("unit", "usecase"), func() {
 				}, nil)
 				passwordHasherMock.EXPECT().Verify(currentPassword, "hashedpassword").Return(false, nil)
 			})
-			It("should return a validation error", func() {
-				var vErr *validator.ValidationError
-				Expect(errors.As(actErr, &vErr)).To(BeTrue())
-				Expect(vErr.First().Field).To(Equal("current_password"))
-				Expect(vErr.First().Message).To(Equal("Current password is incorrect"))
+			It("should return a domain error", func() {
+				Expect(errors.Is(actErr, domain.ErrInvalidPassword)).To(BeTrue())
 			})
 		})
 		When("there is an error during password verification", func() {
@@ -317,11 +310,8 @@ var _ = Describe("User Service", Label("unit", "usecase"), func() {
 				}, nil)
 				passwordHasherMock.EXPECT().Verify(password, "hashedpassword").Return(false, nil)
 			})
-			It("should return a validation error", func() {
-				var vErr *validator.ValidationError
-				Expect(errors.As(actErr, &vErr)).To(BeTrue())
-				Expect(vErr.First().Field).To(Equal("password"))
-				Expect(vErr.First().Message).To(Equal("Password is incorrect"))
+			It("should return a domain error", func() {
+				Expect(errors.Is(actErr, domain.ErrInvalidPassword)).To(BeTrue())
 			})
 		})
 		When("there is an error during password verification", func() {

@@ -17,6 +17,21 @@ type User struct {
 	UpdatedAt       time.Time  `bun:"updated_at,notnull,default:current_timestamp"`
 }
 
+func NewUserFromDomain(u *domain.User) *User {
+	if u == nil {
+		return nil
+	}
+	return &User{
+		ID:              u.ID,
+		Name:            u.Name,
+		Email:           u.Email,
+		Password:        u.Password,
+		EmailVerifiedAt: u.EmailVerifiedAt,
+		CreatedAt:       u.CreatedAt,
+		UpdatedAt:       u.UpdatedAt,
+	}
+}
+
 func (u *User) ToDomain() *domain.User {
 	return &domain.User{
 		ID:              u.ID,

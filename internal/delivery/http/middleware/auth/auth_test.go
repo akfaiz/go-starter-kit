@@ -84,12 +84,28 @@ var _ = Describe("Auth middleware", Label("unit", "middleware"), func() {
 		Expect(appErr.Status).To(Equal(http.StatusUnauthorized))
 	})
 
-	It("bubbles token verification error", func() {
+	It("returns unauthorized on token verification error", func() {
 		c := newContext("Bearer bad-token")
 		jwt.EXPECT().VerifyAccessToken("bad-token").Return(nil, errors.New("invalid token"))
 
 		err := authmw.NewWithSession(jwt, session)(func(c *echo.Context) error { return nil })(c)
-		Expect(err).To(MatchError("invalid token"))
+
+		var appErr *problem.AppError
+		Expect(errors.As(err, &appErr)).To(BeTrue())
+		Expect(appErr.Status).To(Equal(http.StatusUnauthorized))
+	})
+
+	It("returns token expired on expired token error", func() {
+		c := newContext("Bearer expired-token")
+		jwt.EXPECT().VerifyAccessToken("expired-token").Return(nil, domain.ErrTokenExpired)
+
+		err := authmw.NewWithSession(jwt, session)(func(c *echo.Context) error { return nil })(c)
+
+		var appErr *problem.AppError
+		Expect(errors.As(err, &appErr)).To(BeTrue())
+		Expect(appErr.Status).To(Equal(http.StatusUnauthorized))
+		Expect(appErr.Title).To(Equal("Unauthorized"))
+		Expect(appErr.Detail).To(Equal("Your session has expired. Please log in again."))
 	})
 
 	It("sets claims in echo context and request context when token is valid", func() {

@@ -44,8 +44,17 @@ go install github.com/onsi/ginkgo/v2/ginkgo@latest
 
 - Domain package owns service/repository interfaces and shared business types; implementations live in layer-specific packages and are injected with Fx modules.
 - Auth middleware is provided as a named Fx dependency (`name:"auth"`) and injected into protected route groups in `routes.Register`.
-- Handlers are thin: bind + validate request DTOs, call services, and return errors upward. Centralized error shaping is handled by `customHTTPErrorHandler` with `application/problem+json` responses.
+- Handlers are thin: bind + validate request DTOs, convert to domain via `dto.ToDomain()`, call services, and return errors upward. 
+- Error Handling Standard:
+  - **Services** strictly return **Domain Errors** (see `internal/domain/error.go`).
+  - **Handlers** map domain errors to `validator.ValidationError` or `problem.AppError`.
+  - **Unexpected errors** are wrapped in handlers using `problem.Wrap(err, problem.ErrInternalServer)`.
+- Data Mapping Standard:
+  - **DTO -> Domain:** `dto.ToDomain()`
+  - **Domain -> Model:** `model.New[Entity]FromDomain(entity)`
+  - **Model -> Domain:** `modelEntity.ToDomain()`
 - API success responses use the generic envelope `dto.Response[T]` (`status`, `message`, `data`) via `dto.NewResponse` / `dto.NewMessage`.
 - Partial updates use `omit` / `omitnull` types in `domain.UserUpdate`, applied in SQL via `model.ApplyUserUpdate` instead of overwriting full records.
+
 - i18n is expected in runtime and tests: `lang.Init()` is called in startup and test suites, and request locale is injected from `Accept-Language` middleware (default `en`).
 - Mocks are generated from domain interfaces using `//go:generate mockgen ...` directives into `test/mocks/`; service/handler tests consume those mocks heavily.

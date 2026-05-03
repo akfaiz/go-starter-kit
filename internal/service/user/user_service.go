@@ -2,13 +2,11 @@ package user
 
 import (
 	"context"
-	"errors"
 	"time"
 
 	"github.com/aarondl/opt/omit"
 	"github.com/aarondl/opt/omitnull"
 	"github.com/akfaiz/go-starter-kit/internal/domain"
-	"github.com/akfaiz/go-starter-kit/pkg/validator"
 )
 
 type service struct {
@@ -49,14 +47,7 @@ func (s *service) UpdateProfile(ctx context.Context, id int64, user *domain.User
 		return nil
 	}
 
-	if err := s.userRepo.Update(ctx, id, update); err != nil {
-		if errors.Is(err, domain.ErrEmailAlreadyExists) {
-			return validator.NewError("email", "Email already exists")
-		}
-		return err
-	}
-
-	return nil
+	return s.userRepo.Update(ctx, id, update)
 }
 
 func (s *service) ChangePassword(ctx context.Context, id int64, currentPassword, newPassword string) error {
@@ -69,7 +60,7 @@ func (s *service) ChangePassword(ctx context.Context, id int64, currentPassword,
 		return err
 	}
 	if !match {
-		return validator.NewError("current_password", "Current password is incorrect")
+		return domain.ErrInvalidPassword
 	}
 	hashedPassword, err := s.passwordHasher.Hash(newPassword)
 	if err != nil {
@@ -91,7 +82,7 @@ func (s *service) Delete(ctx context.Context, id int64, password string) error {
 		return err
 	}
 	if !match {
-		return validator.NewError("password", "Password is incorrect")
+		return domain.ErrInvalidPassword
 	}
 	return s.userRepo.Delete(ctx, id)
 }

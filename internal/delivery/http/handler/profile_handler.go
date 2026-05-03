@@ -1,6 +1,8 @@
 package handler
 
 import (
+	"errors"
+
 	"github.com/akfaiz/go-starter-kit/internal/delivery/http/handler/dto"
 	"github.com/akfaiz/go-starter-kit/internal/delivery/http/middleware/auth"
 	"github.com/akfaiz/go-starter-kit/internal/domain"
@@ -26,7 +28,7 @@ func (h *ProfileHandler) GetProfile(c *echo.Context) error {
 
 	user, err := h.userService.FindByID(c.Request().Context(), claims.ID)
 	if err != nil {
-		return err
+		return problem.Wrap(err, problem.ErrInternalServer)
 	}
 
 	res := dto.NewResponse(200, dto.NewProfileResponse(user))
@@ -36,7 +38,7 @@ func (h *ProfileHandler) GetProfile(c *echo.Context) error {
 func (h *ProfileHandler) UpdateProfile(c *echo.Context) error {
 	var req dto.UpdateProfileRequest
 	if err := c.Bind(&req); err != nil {
-		return err
+		return problem.Wrap(err, problem.ErrBadRequest)
 	}
 	if err := h.validator.ValidateContext(c.Request().Context(), &req); err != nil {
 		return err
@@ -49,18 +51,21 @@ func (h *ProfileHandler) UpdateProfile(c *echo.Context) error {
 
 	user, err := h.userService.FindByID(c.Request().Context(), claims.ID)
 	if err != nil {
-		return err
+		return problem.Wrap(err, problem.ErrInternalServer)
 	}
 	user.Name = req.Name
 	user.Email = req.Email
 
 	if err := h.userService.UpdateProfile(c.Request().Context(), claims.ID, user); err != nil {
-		return err
+		if errors.Is(err, domain.ErrEmailAlreadyExists) {
+			return validator.NewError("email", "Email already exists")
+		}
+		return problem.Wrap(err, problem.ErrInternalServer)
 	}
 
 	updatedUser, err := h.userService.FindByID(c.Request().Context(), claims.ID)
 	if err != nil {
-		return err
+		return problem.Wrap(err, problem.ErrInternalServer)
 	}
 
 	res := dto.NewResponse(200, dto.NewProfileResponse(updatedUser))
@@ -70,7 +75,7 @@ func (h *ProfileHandler) UpdateProfile(c *echo.Context) error {
 func (h *ProfileHandler) ChangePassword(c *echo.Context) error {
 	var req dto.ChangePasswordRequest
 	if err := c.Bind(&req); err != nil {
-		return err
+		return problem.Wrap(err, problem.ErrBadRequest)
 	}
 	if err := h.validator.ValidateContext(c.Request().Context(), &req); err != nil {
 		return err
@@ -87,7 +92,10 @@ func (h *ProfileHandler) ChangePassword(c *echo.Context) error {
 		req.CurrentPassword,
 		req.NewPassword,
 	); err != nil {
-		return err
+		if errors.Is(err, domain.ErrInvalidPassword) {
+			return validator.NewError("current_password", "Current password is incorrect")
+		}
+		return problem.Wrap(err, problem.ErrInternalServer)
 	}
 
 	res := dto.NewMessage(200, "Password changed successfully")

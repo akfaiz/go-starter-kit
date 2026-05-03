@@ -10,8 +10,6 @@ import (
 	"github.com/akfaiz/go-starter-kit/internal/domain"
 	"github.com/akfaiz/go-starter-kit/internal/lang"
 	"github.com/akfaiz/go-starter-kit/internal/service/auth"
-	"github.com/akfaiz/go-starter-kit/pkg/problem"
-	"github.com/akfaiz/go-starter-kit/pkg/validator"
 	"github.com/akfaiz/go-starter-kit/test/mocks"
 	"github.com/invopop/ctxi18n"
 	. "github.com/onsi/ginkgo/v2"
@@ -142,10 +140,7 @@ var _ = Describe("Auth", Label("unit", "usecase"), func() {
 				check: func(token *domain.PairToken, err error) {
 					Expect(err).To(HaveOccurred())
 					Expect(token).To(BeNil())
-					var vErr *validator.ValidationError
-					Expect(errors.As(err, &vErr)).To(BeTrue())
-					Expect(vErr.First().Field).To(Equal("email"))
-					Expect(vErr.First().Message).To(Equal("These credentials do not match our records."))
+					Expect(errors.Is(err, domain.ErrInvalidCredentials)).To(BeTrue())
 				},
 			}),
 			Entry("should return error when password verification fails", testCase{
@@ -165,8 +160,7 @@ var _ = Describe("Auth", Label("unit", "usecase"), func() {
 				check: func(token *domain.PairToken, err error) {
 					Expect(err).To(HaveOccurred())
 					Expect(token).To(BeNil())
-					var vErr *validator.ValidationError
-					Expect(errors.As(err, &vErr)).To(BeTrue())
+					Expect(errors.Is(err, domain.ErrInvalidCredentials)).To(BeTrue())
 				},
 			}),
 			Entry("should return error when password hasher fails", testCase{
@@ -279,10 +273,7 @@ var _ = Describe("Auth", Label("unit", "usecase"), func() {
 			token, err := svc.RefreshToken(ctx, "old.refresh.token")
 			Expect(err).To(HaveOccurred())
 			Expect(token).To(BeNil())
-
-			var appErr *problem.AppError
-			Expect(errors.As(err, &appErr)).To(BeTrue())
-			Expect(appErr.Status).To(Equal(401))
+			Expect(errors.Is(err, domain.ErrInvalidToken)).To(BeTrue())
 		})
 
 		It("should return error when JWT verification fails", func() {
@@ -291,6 +282,7 @@ var _ = Describe("Auth", Label("unit", "usecase"), func() {
 			token, err := svc.RefreshToken(ctx, "invalid.token")
 			Expect(err).To(HaveOccurred())
 			Expect(token).To(BeNil())
+			Expect(errors.Is(err, domain.ErrInvalidToken)).To(BeTrue())
 		})
 
 		It("should return unauthorized when token mismatch", func() {
@@ -300,10 +292,7 @@ var _ = Describe("Auth", Label("unit", "usecase"), func() {
 			token, err := svc.RefreshToken(ctx, "old.refresh.token")
 			Expect(err).To(HaveOccurred())
 			Expect(token).To(BeNil())
-
-			var appErr *problem.AppError
-			Expect(errors.As(err, &appErr)).To(BeTrue())
-			Expect(appErr.Status).To(Equal(401))
+			Expect(errors.Is(err, domain.ErrInvalidToken)).To(BeTrue())
 		})
 
 		It("should return error when user not found", func() {
@@ -398,8 +387,7 @@ var _ = Describe("Auth", Label("unit", "usecase"), func() {
 			token, err := svc.Register(ctx, newUser)
 			Expect(err).To(HaveOccurred())
 			Expect(token).To(BeNil())
-			var vErr *validator.ValidationError
-			Expect(errors.As(err, &vErr)).To(BeTrue())
+			Expect(errors.Is(err, domain.ErrEmailAlreadyExists)).To(BeTrue())
 		})
 
 		It("should return error when password hashing fails", func() {
@@ -435,8 +423,7 @@ var _ = Describe("Auth", Label("unit", "usecase"), func() {
 
 			err := svc.SendForgotPasswordOTP(ctx, "missing@example.com")
 			Expect(err).To(HaveOccurred())
-			var vErr *validator.ValidationError
-			Expect(errors.As(err, &vErr)).To(BeTrue())
+			Expect(errors.Is(err, domain.ErrUserNotFound)).To(BeTrue())
 		})
 
 		It("should return error when OTP hashing fails", func() {
@@ -497,6 +484,7 @@ var _ = Describe("Auth", Label("unit", "usecase"), func() {
 
 			err := svc.VerifyForgotPasswordOTP(ctx, "missing@example.com", "123456")
 			Expect(err).To(HaveOccurred())
+			Expect(errors.Is(err, domain.ErrUserNotFound)).To(BeTrue())
 		})
 
 		It("should return error when token not found", func() {
@@ -506,6 +494,7 @@ var _ = Describe("Auth", Label("unit", "usecase"), func() {
 
 			err := svc.VerifyForgotPasswordOTP(ctx, "john@example.com", "123456")
 			Expect(err).To(HaveOccurred())
+			Expect(errors.Is(err, domain.ErrInvalidToken)).To(BeTrue())
 		})
 
 		It("should return error when OTP is expired", func() {
@@ -521,6 +510,7 @@ var _ = Describe("Auth", Label("unit", "usecase"), func() {
 
 			err := svc.VerifyForgotPasswordOTP(ctx, "john@example.com", "123456")
 			Expect(err).To(HaveOccurred())
+			Expect(errors.Is(err, domain.ErrTokenExpired)).To(BeTrue())
 		})
 
 		It("should return error when OTP verification fails", func() {
@@ -538,6 +528,7 @@ var _ = Describe("Auth", Label("unit", "usecase"), func() {
 
 			err := svc.VerifyForgotPasswordOTP(ctx, "john@example.com", otp)
 			Expect(err).To(HaveOccurred())
+			Expect(errors.Is(err, domain.ErrInvalidToken)).To(BeTrue())
 		})
 	})
 
@@ -572,6 +563,7 @@ var _ = Describe("Auth", Label("unit", "usecase"), func() {
 
 			err := svc.ResetPasswordWithOTP(ctx, "missing@example.com", "123456", "newpass")
 			Expect(err).To(HaveOccurred())
+			Expect(errors.Is(err, domain.ErrUserNotFound)).To(BeTrue())
 		})
 
 		It("should return error when password hashing fails", func() {

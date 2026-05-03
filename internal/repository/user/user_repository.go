@@ -21,11 +21,7 @@ func NewRepository(db *bun.DB) domain.UserRepository {
 }
 
 func (r *repository) Create(ctx context.Context, user *domain.User) error {
-	m := &model.User{
-		Name:     user.Name,
-		Email:    user.Email,
-		Password: user.Password,
-	}
+	m := model.NewUserFromDomain(user)
 	_, err := r.db.NewInsert().Model(m).Exec(ctx)
 	if err != nil {
 		var pgError pgdriver.Error
