@@ -12,7 +12,6 @@ package mocks
 import (
 	context "context"
 	reflect "reflect"
-	time "time"
 
 	gomock "go.uber.org/mock/gomock"
 )
@@ -86,15 +85,15 @@ func (mr *MockSessionRepositoryMockRecorder) GetRefreshToken(ctx, userID any) *g
 }
 
 // SavePairToken mocks base method.
-func (m *MockSessionRepository) SavePairToken(ctx context.Context, userID int64, accessToken, refreshToken string, accessTTL, refreshTTL time.Duration) error {
+func (m *MockSessionRepository) SavePairToken(ctx context.Context, userID int64, accessToken, refreshToken string) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "SavePairToken", ctx, userID, accessToken, refreshToken, accessTTL, refreshTTL)
+	ret := m.ctrl.Call(m, "SavePairToken", ctx, userID, accessToken, refreshToken)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // SavePairToken indicates an expected call of SavePairToken.
-func (mr *MockSessionRepositoryMockRecorder) SavePairToken(ctx, userID, accessToken, refreshToken, accessTTL, refreshTTL any) *gomock.Call {
+func (mr *MockSessionRepositoryMockRecorder) SavePairToken(ctx, userID, accessToken, refreshToken any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SavePairToken", reflect.TypeOf((*MockSessionRepository)(nil).SavePairToken), ctx, userID, accessToken, refreshToken, accessTTL, refreshTTL)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SavePairToken", reflect.TypeOf((*MockSessionRepository)(nil).SavePairToken), ctx, userID, accessToken, refreshToken)
 }

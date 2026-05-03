@@ -10,8 +10,8 @@ import (
 )
 
 var cmd = &cli.Command{
-	Name:  "go-vue-starter-kit",
-	Usage: "A starter kit for building web applications with Go and Vue.js",
+	Name:  "go-starter-kit",
+	Usage: "A starter kit for building Go applications",
 	Commands: []*cli.Command{
 		serve.Command,
 		migrate.Command(),

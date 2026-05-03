@@ -3,16 +3,10 @@ package domain
 
 import (
 	"context"
-	"time"
 )
 
 type SessionRepository interface {
-	SavePairToken(
-		ctx context.Context,
-		userID int64,
-		accessToken, refreshToken string,
-		accessTTL, refreshTTL time.Duration,
-	) error
+	SavePairToken(ctx context.Context, userID int64, accessToken, refreshToken string) error
 	GetAccessToken(ctx context.Context, userID int64) (string, error)
 	GetRefreshToken(ctx context.Context, userID int64) (string, error)
 	DeleteSession(ctx context.Context, userID int64) error

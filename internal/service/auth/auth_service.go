@@ -184,8 +184,6 @@ func (s *service) issuePairToken(ctx context.Context, claims *domain.JWTClaims) 
 		claims.ID,
 		pairToken.AccessToken,
 		pairToken.RefreshToken,
-		s.cfg.Auth.JWT.AccessExpires,
-		s.cfg.Auth.JWT.RefreshExpires,
 	); err != nil {
 		return nil, err
 	}

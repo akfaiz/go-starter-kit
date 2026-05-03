@@ -110,8 +110,6 @@ var _ = Describe("Auth", Label("unit", "usecase"), func() {
 						user.ID,
 						"access.token.here",
 						"refresh.token.here",
-						15*time.Minute,
-						24*time.Hour,
 					).Return(nil)
 				},
 				check: func(token *domain.PairToken, err error) {
@@ -160,8 +158,6 @@ var _ = Describe("Auth", Label("unit", "usecase"), func() {
 				user.ID,
 				"new.access.token",
 				"new.refresh.token",
-				15*time.Minute,
-				24*time.Hour,
 			).Return(nil)
 
 			token, err := svc.RefreshToken(ctx, "old.refresh.token")

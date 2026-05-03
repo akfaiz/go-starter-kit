@@ -14,26 +14,25 @@ import (
 )
 
 type repository struct {
-	rdb    *redis.Client
-	prefix string
+	rdb        *redis.Client
+	prefix     string
+	accessTTL  time.Duration
+	refreshTTL time.Duration
 }
 
 func NewRepository(cfg config.Config, rdb *redis.Client) domain.SessionRepository {
 	return &repository{
-		rdb:    rdb,
-		prefix: cfg.Redis.Prefix,
+		rdb:        rdb,
+		prefix:     cfg.Redis.Prefix,
+		accessTTL:  cfg.Auth.JWT.AccessExpires,
+		refreshTTL: cfg.Auth.JWT.RefreshExpires,
 	}
 }
 
-func (r *repository) SavePairToken(
-	ctx context.Context,
-	userID int64,
-	accessToken, refreshToken string,
-	accessTTL, refreshTTL time.Duration,
-) error {
+func (r *repository) SavePairToken(ctx context.Context, userID int64, accessToken, refreshToken string) error {
 	pipe := r.rdb.TxPipeline()
-	pipe.Set(ctx, r.accessKey(userID), accessToken, accessTTL)
-	pipe.Set(ctx, r.refreshKey(userID), refreshToken, refreshTTL)
+	pipe.Set(ctx, r.accessKey(userID), accessToken, r.accessTTL)
+	pipe.Set(ctx, r.refreshKey(userID), refreshToken, r.refreshTTL)
 	_, err := pipe.Exec(ctx)
 	return err
 }
