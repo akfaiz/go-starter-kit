@@ -2,11 +2,12 @@ package queue
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/akfaiz/go-starter-kit/internal/config"
 	"github.com/hibiken/asynq"
 	"go.opentelemetry.io/otel"
-	"go.opentelemetry.io/otel/attribute"
+	semconv "go.opentelemetry.io/otel/semconv/v1.26.0"
 	"go.opentelemetry.io/otel/trace"
 )
 
@@ -24,12 +25,18 @@ func NewClient(opt config.Redis) *Client {
 	}
 }
 
-var tracer = otel.Tracer("asynq-client")
-
 func (c *Client) EnqueueContext(ctx context.Context, t *asynq.Task, opts ...asynq.Option) (*asynq.TaskInfo, error) {
-	ctx, span := tracer.Start(ctx, "asynq:enqueue", trace.WithAttributes(
-		attribute.String("asynq.task_type", t.Type()),
-	))
+	tracer := otel.Tracer("asynq-client")
+	ctx, span := tracer.Start(
+		ctx,
+		fmt.Sprintf("%s publish", t.Type()),
+		trace.WithSpanKind(trace.SpanKindProducer),
+		trace.WithAttributes(
+			semconv.MessagingSystemKey.String("asynq"),
+			semconv.MessagingDestinationNameKey.String(t.Type()),
+			semconv.MessagingOperationTypePublish,
+		),
+	)
 	defer span.End()
 
 	return c.client.EnqueueContext(ctx, t, opts...)
