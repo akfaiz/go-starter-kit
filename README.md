@@ -8,7 +8,7 @@ A production-ready, layered Go API with batteries included.
 |---|---|
 | HTTP | Echo v5 |
 | Database | GORM + PostgreSQL |
-| Cache & Queue | Redis (sessions, rate limiting, Asynq jobs) |
+| Cache & Queue | Redis (sessions, Asynq jobs) |
 | Auth | JWT (access + refresh tokens), OTP forgot-password flow |
 | Observability | OpenTelemetry → Jaeger |
 | DI | Uber FX |
@@ -48,7 +48,6 @@ go run . serve
     ├── lang/          # i18n (English, Indonesian)
     ├── model/         # DB models
     ├── repository/    # Data persistence
-    ├── security/      # Auth guards, rate limiting
     ├── service/       # Business logic
     └── telemetry/     # OTel setup
 ```
@@ -65,11 +64,6 @@ go run . serve
 ## Auth
 
 Sessions store both access and refresh tokens in Redis. Refresh tokens rotate on use. Password reset revokes the active session.
-
-**Rate limiting (Redis-backed):**
-- Login: IP limit + per-email lockout on repeated failures
-- Refresh token: IP limit
-- Exceeded limits return `429` with a `Retry-After` header
 
 **Endpoints:**
 ```

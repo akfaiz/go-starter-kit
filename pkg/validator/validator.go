@@ -15,11 +15,13 @@ import (
 	"github.com/invopop/ctxi18n"
 )
 
+// Validate is a wrapper around the go-playground/validator that supports i18n error messages and custom field name resolution.
 type Validate struct {
 	validate *govalidator.Validate
 	uni      *ut.UniversalTranslator
 }
 
+// New creates a new Validate instance with custom tag name resolution and registered translations for English and Indonesian locales.
 func New() *Validate {
 	v := govalidator.New()
 	v.RegisterTagNameFunc(func(fld reflect.StructField) string {
@@ -50,10 +52,12 @@ func New() *Validate {
 	return &Validate{validate: v, uni: uni}
 }
 
+// Validate validates the struct using the default context (English locale).
 func (v *Validate) Validate(i any) error {
 	return v.ValidateContext(context.Background(), i)
 }
 
+// ValidateContext validates the struct using the provided context for i18n support.
 func (v *Validate) ValidateContext(ctx context.Context, i any) error {
 	err := v.validate.StructCtx(ctx, i)
 	if err == nil {

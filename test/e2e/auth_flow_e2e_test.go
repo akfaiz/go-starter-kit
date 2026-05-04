@@ -104,26 +104,4 @@ var _ = Describe("Auth Flow E2E", Label("e2e"), func() {
 			Value("data").Object().
 			Value("access_token").String().NotEmpty()
 	})
-
-	It("rate limits repeated failed login attempts", func() {
-		limited := false
-		for range 6 {
-			resp := e2eExpect.POST("/api/v1/auth/login").
-				WithJSON(map[string]any{
-					"email":    "locked@example.com",
-					"password": "invalid-password",
-				}).
-				Expect()
-
-			if resp.Raw().StatusCode == http.StatusTooManyRequests {
-				resp.Header("Retry-After").NotEmpty()
-				limited = true
-				break
-			}
-
-			resp.Status(http.StatusUnprocessableEntity)
-		}
-
-		Expect(limited).To(BeTrue(), "expected 429 after repeated failed login attempts")
-	})
 })

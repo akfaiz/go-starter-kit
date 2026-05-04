@@ -11,7 +11,6 @@ import (
 	"github.com/akfaiz/go-starter-kit/internal/lang"
 	"github.com/akfaiz/go-starter-kit/internal/logger"
 	"github.com/akfaiz/go-starter-kit/internal/repository"
-	"github.com/akfaiz/go-starter-kit/internal/security"
 	"github.com/akfaiz/go-starter-kit/internal/service"
 	"github.com/akfaiz/go-starter-kit/internal/telemetry"
 	"github.com/urfave/cli/v3"
@@ -58,7 +57,6 @@ func appOptions(cfg config.Config) []fx.Option {
 		infra.Module,
 		repository.Module,
 		hash.Module,
-		security.Module,
 		service.Module,
 		telemetry.Module,
 		queue.ClientModule,

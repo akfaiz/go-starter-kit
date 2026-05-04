@@ -14,7 +14,6 @@ import (
 	"github.com/akfaiz/go-starter-kit/internal/infra"
 	"github.com/akfaiz/go-starter-kit/internal/lang"
 	"github.com/akfaiz/go-starter-kit/internal/repository"
-	"github.com/akfaiz/go-starter-kit/internal/security"
 	"github.com/akfaiz/go-starter-kit/internal/service"
 	"github.com/akfaiz/go-starter-kit/internal/telemetry"
 	"github.com/akfaiz/go-starter-kit/test"
@@ -90,14 +89,6 @@ var _ = BeforeSuite(func() {
 			},
 			From: config.MailFrom{Address: "noreply@example.com", Name: "E2E"},
 		},
-		RateLimit: config.RateLimit{
-			LoginAttempts:         5,
-			LoginWindow:           10 * time.Minute,
-			LoginLockoutThreshold: 5,
-			LoginLockoutDuration:  15 * time.Minute,
-			RefreshAttemptsPerIP:  20,
-			RefreshWindow:         10 * time.Minute,
-		},
 		Redis: config.Redis{
 			Addr:     fmt.Sprintf("%s:%s", redisHost, redisPort.Port()),
 			Password: "",
@@ -121,7 +112,6 @@ var _ = BeforeSuite(func() {
 		infra.Module,
 		repository.Module,
 		hash.Module,
-		security.Module,
 		service.Module,
 		telemetry.Module,
 		deliveryhttp.Module,

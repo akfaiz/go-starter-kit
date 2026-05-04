@@ -13,7 +13,6 @@ type Config struct {
 	Database  Database
 	Mail      Mail
 	Queue     Queue
-	RateLimit RateLimit
 	Redis     Redis
 	Server    Server
 	Telemetry Telemetry
@@ -44,7 +43,6 @@ func loadConfig() Config {
 		Database:  loadDatabaseConfig(),
 		Mail:      loadMailConfig(),
 		Queue:     loadQueueConfig(),
-		RateLimit: loadRateLimitConfig(),
 		Redis:     loadRedisConfig(),
 		Server:    loadServerConfig(),
 		Telemetry: loadTelemetryConfig(),

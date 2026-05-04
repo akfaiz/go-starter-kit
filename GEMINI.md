@@ -7,7 +7,7 @@ This is a **Go API Starter Kit**, an API-only project built with Go.
 - **Web Framework:** Echo v5
 - **API Documentation:** OpenAPI via `github.com/oaswrap/spec/adapter/echov5openapi`
 - **Database / ORM:** PostgreSQL with GORM
-- **Caching & Session:** Redis (used for auth rate limiting and session storage)
+- **Caching & Session:** Redis (used for session storage)
 - **Migrations:** Migris
 - **Authentication:** JWT (Access and Refresh tokens) with token pair session management in Redis.
 - **Dependency Injection:** Uber FX

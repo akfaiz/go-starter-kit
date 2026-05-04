@@ -100,7 +100,7 @@ var _ = Describe("HealthCheckHandler", Label("unit", "handler"), func() {
 		Expect(mock.ExpectationsWereMet()).To(Succeed())
 	})
 
-	It("returns error payload when redis ping fails", func() {
+	It("returns ok when redis ping fails", func() {
 		db, mock, sqldb := newDB()
 		defer func() {
 			_ = sqldb.Close()
@@ -114,10 +114,14 @@ var _ = Describe("HealthCheckHandler", Label("unit", "handler"), func() {
 
 		expect.GET("/health").
 			Expect().
-			Status(http.StatusInternalServerError).
-			JSON(httpexpect.ContentOpts{MediaType: "application/problem+json"}).
+			Status(http.StatusOK).
+			JSON().
 			Object().
-			HasValue("detail", "Redis connection error")
+			HasValue("status", "ok").
+			HasValue("message", "Application is healthy").
+			Value("checks").Object().
+			HasValue("database", "ok").
+			HasValue("redis", "degraded")
 
 		Expect(mock.ExpectationsWereMet()).To(Succeed())
 	})

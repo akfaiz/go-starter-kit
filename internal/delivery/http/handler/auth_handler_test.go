@@ -7,7 +7,6 @@ import (
 
 	"github.com/akfaiz/go-starter-kit/internal/delivery/http/handler"
 	"github.com/akfaiz/go-starter-kit/internal/domain"
-	"github.com/akfaiz/go-starter-kit/internal/security"
 	"github.com/akfaiz/go-starter-kit/test/mocks"
 	"github.com/gavv/httpexpect/v2"
 	"github.com/labstack/echo/v5"
@@ -20,7 +19,6 @@ var _ = Describe("AuthHandler", Label("unit", "handler"), func() {
 	var (
 		ctrl    *gomock.Controller
 		service *mocks.MockAuthService
-		guard   *mocks.MockAuthGuard
 		h       *handler.AuthHandler
 		e       *echo.Echo
 		expect  *httpexpect.Expect
@@ -29,8 +27,7 @@ var _ = Describe("AuthHandler", Label("unit", "handler"), func() {
 	BeforeEach(func() {
 		ctrl = gomock.NewController(GinkgoT())
 		service = mocks.NewMockAuthService(ctrl)
-		guard = mocks.NewMockAuthGuard(ctrl)
-		h = handler.NewAuthHandler(service, guard)
+		h = handler.NewAuthHandler(service)
 		e = setupEcho()
 		expect = newExpect(e)
 	})
@@ -75,29 +72,10 @@ var _ = Describe("AuthHandler", Label("unit", "handler"), func() {
 			e.POST("/auth/login", h.Login)
 		})
 
-		It("returns too many requests error and retry-after header when limited", func() {
-			guard.EXPECT().
-				CheckLogin(gomock.Any(), gomock.Any(), "john@example.com").
-				Return(&security.RateLimitResult{Limited: true, RetryAfter: 30}, nil)
-
-			expect.POST("/auth/login").
-				WithJSON(map[string]any{
-					"email":    "john@example.com",
-					"password": "secret123",
-				}).
-				Expect().
-				Status(http.StatusTooManyRequests).
-				Header("Retry-After").IsEqual("30")
-		})
-
 		It("returns 200 with token response on success", func() {
-			guard.EXPECT().
-				CheckLogin(gomock.Any(), gomock.Any(), "john@example.com").
-				Return(&security.RateLimitResult{}, nil)
 			service.EXPECT().
 				Login(gomock.Any(), "john@example.com", "secret123").
 				Return(&domain.PairToken{AccessToken: "acc", RefreshToken: "ref"}, nil)
-			guard.EXPECT().OnLoginSuccess(gomock.Any(), "john@example.com").Return(nil)
 
 			expect.POST("/auth/login").
 				WithJSON(map[string]any{
@@ -119,7 +97,6 @@ var _ = Describe("AuthHandler", Label("unit", "handler"), func() {
 		})
 
 		It("returns 200 with new token pair", func() {
-			guard.EXPECT().CheckRefresh(gomock.Any(), gomock.Any()).Return(&security.RateLimitResult{}, nil)
 			service.EXPECT().
 				RefreshToken(gomock.Any(), "r1").
 				Return(&domain.PairToken{AccessToken: "new-acc", RefreshToken: "new-ref"}, nil)

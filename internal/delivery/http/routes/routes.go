@@ -47,31 +47,37 @@ func Register(rc RouteConfig) {
 		option.Summary("User Registration"),
 		option.Request(new(dto.RegisterRequest)),
 		option.Response(201, new(dto.Response[dto.TokenResponse])),
+		option.Response(422, new(dto.ValidationErrorResponse)),
 	)
 	auth.POST("/login", rc.AuthHandler.Login).With(
 		option.Summary("User Login"),
 		option.Request(new(dto.LoginRequest)),
 		option.Response(200, new(dto.Response[dto.TokenResponse])),
+		option.Response(422, new(dto.ValidationErrorResponse)),
 	)
 	auth.POST("/refresh-token", rc.AuthHandler.RefreshToken).With(
 		option.Summary("Refresh Token"),
 		option.Request(new(dto.RefreshTokenRequest)),
 		option.Response(200, new(dto.Response[dto.TokenResponse])),
+		option.Response(422, new(dto.ValidationErrorResponse)),
 	)
 	auth.POST("/forgot-password/send-otp", rc.AuthHandler.SendForgotPasswordOTP).With(
 		option.Summary("Send forgot password OTP"),
 		option.Request(new(dto.SendForgotPasswordOTPRequest)),
 		option.Response(200, new(dto.GenericResponse)),
+		option.Response(422, new(dto.ValidationErrorResponse)),
 	)
 	auth.POST("/forgot-password/verify-otp", rc.AuthHandler.VerifyForgotPasswordOTP).With(
 		option.Summary("Verify forgot password OTP"),
 		option.Request(new(dto.VerifyForgotPasswordOTPRequest)),
 		option.Response(200, new(dto.GenericResponse)),
+		option.Response(422, new(dto.ValidationErrorResponse)),
 	)
 	auth.POST("/forgot-password/reset-password", rc.AuthHandler.ResetPasswordWithOTP).With(
 		option.Summary("Reset password with OTP"),
 		option.Request(new(dto.ResetPasswordWithOTPRequest)),
 		option.Response(200, new(dto.GenericResponse)),
+		option.Response(422, new(dto.ValidationErrorResponse)),
 	)
 
 	profile := v1.Group("/profile", rc.AuthMiddleware).With(
@@ -86,11 +92,15 @@ func Register(rc RouteConfig) {
 		option.Summary("Update profile"),
 		option.Request(new(dto.UpdateProfileRequest)),
 		option.Response(200, new(dto.Response[dto.ProfileResponse])),
+		option.Response(401, new(dto.ErrorResponse)),
+		option.Response(422, new(dto.ValidationErrorResponse)),
 	)
 	profile.PUT("/password", rc.ProfileHandler.ChangePassword).With(
 		option.Summary("Update password"),
 		option.Request(new(dto.ChangePasswordRequest)),
 		option.Response(200, new(dto.GenericResponse)),
+		option.Response(401, new(dto.ErrorResponse)),
+		option.Response(422, new(dto.ValidationErrorResponse)),
 	)
 
 	users := v1.Group("/users", rc.AuthMiddleware).With(
@@ -101,5 +111,6 @@ func Register(rc RouteConfig) {
 		option.Summary("List users"),
 		option.Request(new(dto.UserListRequest)),
 		option.Response(200, new(dto.PaginatedResponse[*dto.UserResponse])),
+		option.Response(401, new(dto.ErrorResponse)),
 	)
 }

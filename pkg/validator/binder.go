@@ -1,8 +1,6 @@
 package validator
 
-import (
-	"github.com/labstack/echo/v5"
-)
+import "github.com/labstack/echo/v5"
 
 // Binder wraps the default Echo binder and adds automatic validation.
 type Binder struct {
