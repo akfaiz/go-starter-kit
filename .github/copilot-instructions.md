@@ -47,7 +47,7 @@ go install github.com/onsi/ginkgo/v2/ginkgo@latest
 - Handlers are thin: bind + validate request DTOs, convert to domain via `dto.ToDomain()`, call services, and return errors upward. 
 - Error Handling Standard:
   - **Services** strictly return **Domain Errors** (see `internal/domain/error.go`).
-  - **Handlers** map domain errors to `validator.ValidationError` or `problem.AppError`.
+  - **Handlers** map domain errors to `validator.ValidationError` or `problem.Error`.
   - **Unexpected errors** are wrapped in handlers using `problem.Wrap(err, problem.ErrInternalServer)`.
 - Data Mapping Standard:
   - **DTO -> Domain:** `dto.ToDomain()`

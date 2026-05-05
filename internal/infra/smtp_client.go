@@ -9,6 +9,7 @@ import (
 	"github.com/akfaiz/go-mailgen"
 	"github.com/akfaiz/go-starter-kit/internal/config"
 	"github.com/akfaiz/go-starter-kit/internal/domain"
+	cerrors "github.com/cockroachdb/errors"
 	"github.com/wneessen/go-mail"
 )
 
@@ -38,7 +39,7 @@ func NewSMTPMailer(cfg config.Config) (domain.Mailer, error) {
 
 	client, err := mail.NewClient(smtp.Host, opts...)
 	if err != nil {
-		return nil, err
+		return nil, cerrors.WithStack(err)
 	}
 
 	mailgen.SetDefault(mailgen.New().Product(mailgen.Product{
@@ -68,19 +69,19 @@ func (m *smtpMailer) Send(ctx context.Context, message *domain.Mail) error {
 	msg := mail.NewMsg()
 	from := fmt.Sprintf("%s <%s>", m.mailCfg.From.Name, m.mailCfg.From.Address)
 	if err := msg.From(from); err != nil {
-		return err
+		return cerrors.WithStack(err)
 	}
 	if err := msg.To(message.To...); err != nil {
-		return err
+		return cerrors.WithStack(err)
 	}
 	if len(message.Cc) > 0 {
 		if err := msg.Cc(message.Cc...); err != nil {
-			return err
+			return cerrors.WithStack(err)
 		}
 	}
 	if len(message.Bcc) > 0 {
 		if err := msg.Bcc(message.Bcc...); err != nil {
-			return err
+			return cerrors.WithStack(err)
 		}
 	}
 	msg.Subject(message.Subject)
@@ -88,7 +89,7 @@ func (m *smtpMailer) Send(ctx context.Context, message *domain.Mail) error {
 	msg.SetBodyString(mail.TypeTextHTML, message.HTML)
 
 	if err := m.client.DialAndSendWithContext(ctx, msg); err != nil {
-		return err
+		return cerrors.WithStack(err)
 	}
 
 	return nil

@@ -15,6 +15,7 @@ import (
 	"github.com/akfaiz/go-starter-kit/internal/delivery/queue/handler/payload"
 	"github.com/akfaiz/go-starter-kit/internal/domain"
 	"github.com/akfaiz/go-starter-kit/internal/telemetry"
+	cerrors "github.com/cockroachdb/errors"
 	"go.opentelemetry.io/otel"
 )
 
@@ -162,7 +163,7 @@ func (s *service) SendForgotPasswordOTP(ctx context.Context, email string) error
 	builder := s.buildEmailForgotPasswordOTP(user, otp)
 	message, err := builder.Build()
 	if err != nil {
-		return err
+		return cerrors.WithStack(err)
 	}
 
 	payload, err := json.Marshal(payload.MailPayload{
@@ -174,11 +175,11 @@ func (s *service) SendForgotPasswordOTP(ctx context.Context, email string) error
 		HTML:    message.HTML(),
 	})
 	if err != nil {
-		return err
+		return cerrors.WithStack(err)
 	}
 
 	if _, err := s.queue.EnqueueContext(ctx, queue.NewTask(ctx, queue.TypeMailSend, payload)); err != nil {
-		return err
+		return cerrors.WithStack(err)
 	}
 
 	return nil
@@ -287,7 +288,7 @@ func (s *service) generateOTP(length int) (string, error) {
 	for i := range otp {
 		n, err := rand.Int(rand.Reader, upperBound)
 		if err != nil {
-			return "", err
+			return "", cerrors.WithStack(err)
 		}
 		otp[i] = digits[n.Int64()]
 	}

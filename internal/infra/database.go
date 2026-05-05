@@ -5,6 +5,7 @@ import (
 	"log/slog"
 
 	"github.com/akfaiz/go-starter-kit/internal/config"
+	cerrors "github.com/cockroachdb/errors"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
@@ -25,20 +26,20 @@ func NewDatabase(cfg config.Config) (*gorm.DB, error) {
 
 	db, err := gorm.Open(postgres.Open(cfg.Database.DSN()), gormCfg)
 	if err != nil {
-		return nil, err
+		return nil, cerrors.WithStack(err)
 	}
 
 	sqlDB, err := db.DB()
 	if err != nil {
-		return nil, err
+		return nil, cerrors.WithStack(err)
 	}
 
 	if err := sqlDB.PingContext(context.Background()); err != nil {
-		return nil, err
+		return nil, cerrors.WithStack(err)
 	}
 
 	if err := db.Use(tracing.NewPlugin()); err != nil {
-		return nil, err
+		return nil, cerrors.WithStack(err)
 	}
 
 	return db, nil

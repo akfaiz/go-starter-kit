@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/akfaiz/go-starter-kit/internal/telemetry"
 	"github.com/hibiken/asynq"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/propagation"
@@ -33,7 +34,7 @@ func Otel(h asynq.Handler) asynq.Handler {
 
 		err := h.ProcessTask(ctx, t)
 		if err != nil {
-			span.RecordError(err)
+			telemetry.RecordSpanError(span, err)
 		}
 		return err
 	})

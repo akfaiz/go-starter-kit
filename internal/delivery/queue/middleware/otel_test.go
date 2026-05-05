@@ -6,10 +6,13 @@ import (
 	"testing"
 
 	"github.com/akfaiz/go-starter-kit/internal/delivery/queue/middleware"
+	cerrors "github.com/cockroachdb/errors"
 	"github.com/hibiken/asynq"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/propagation"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	"go.opentelemetry.io/otel/sdk/trace/tracetest"
@@ -74,7 +77,16 @@ func TestOtel(t *testing.T) {
 	})
 
 	t.Run("returns handler error", func(t *testing.T) {
-		wantErr := errors.New("boom")
+		prevTracerProvider := otel.GetTracerProvider()
+		exporter := tracetest.NewInMemoryExporter()
+		tp := sdktrace.NewTracerProvider(sdktrace.WithSyncer(exporter))
+		otel.SetTracerProvider(tp)
+		t.Cleanup(func() {
+			_ = tp.Shutdown(context.Background())
+			otel.SetTracerProvider(prevTracerProvider)
+		})
+
+		wantErr := cerrors.WithStack(errors.New("boom"))
 		task := asynq.NewTask("mail:send", []byte(`{}`))
 
 		handler := asynq.HandlerFunc(func(context.Context, *asynq.Task) error {
@@ -83,5 +95,23 @@ func TestOtel(t *testing.T) {
 
 		err := middleware.Otel(handler).ProcessTask(context.Background(), task)
 		require.ErrorIs(t, err, wantErr)
+
+		spans := exporter.GetSpans()
+		require.Len(t, spans, 1)
+		assert.Equal(t, codes.Error, spans[0].Status.Code)
+		assert.Contains(t, spans[0].Attributes, semconv.ExceptionTypeKey.String("*errors.errorString"))
+		assert.Contains(t, spans[0].Attributes, semconv.ExceptionMessageKey.String("boom"))
+		assert.NotEmpty(t, findAttr(t, spans[0].Attributes, semconv.ExceptionStacktraceKey).Value.AsString())
 	})
+}
+
+func findAttr(t *testing.T, attrs []attribute.KeyValue, key attribute.Key) attribute.KeyValue {
+	t.Helper()
+	for _, attr := range attrs {
+		if attr.Key == key {
+			return attr
+		}
+	}
+	t.Fatalf("attribute %s not found", key)
+	return attribute.KeyValue{}
 }

@@ -4,10 +4,12 @@ import (
 	"log/slog"
 	"net/http"
 
+	"github.com/akfaiz/go-starter-kit/internal/telemetry"
 	"github.com/akfaiz/go-starter-kit/pkg/problem"
 	"github.com/akfaiz/go-starter-kit/pkg/validator"
 	"github.com/cockroachdb/errors"
 	"github.com/labstack/echo/v5"
+	"go.opentelemetry.io/otel/trace"
 )
 
 const ContentTypeProblemJSON = "application/problem+json"
@@ -16,6 +18,7 @@ func CustomHTTPErrorHandler(c *echo.Context, err error) {
 	if r, _ := echo.UnwrapResponse(c.Response()); r != nil && r.Committed {
 		return
 	}
+	telemetry.RecordSpanError(trace.SpanFromContext(c.Request().Context()), err)
 
 	res := c.Response()
 	res.Header().Set(echo.HeaderContentType, ContentTypeProblemJSON)
@@ -26,21 +29,21 @@ func CustomHTTPErrorHandler(c *echo.Context, err error) {
 		instance = requestID[0]
 	}
 
-	var appError *problem.AppError
-	if errors.As(err, &appError) {
-		if jsonErr := c.JSON(appError.Status, appError.WithInstance(instance)); jsonErr != nil {
-			slog.ErrorContext(c.Request().Context(), "write app error response failed", "error", jsonErr)
+	var problemError *problem.Error
+	if errors.As(err, &problemError) {
+		if jsonErr := c.JSON(problemError.Status, problemError.WithInstance(instance)); jsonErr != nil {
+			slog.ErrorContext(c.Request().Context(), "write problem error response failed", "error", jsonErr)
 		}
 		return
 	}
 
 	var validationErr *validator.ValidationError
 	if errors.As(err, &validationErr) {
-		appError := problem.ErrValidation().
+		problemError := problem.ErrValidation().
 			WithErrors(validationErr).
 			WithCause(err).
 			WithInstance(instance)
-		if jsonErr := c.JSON(appError.Status, appError); jsonErr != nil {
+		if jsonErr := c.JSON(problemError.Status, problemError); jsonErr != nil {
 			slog.ErrorContext(c.Request().Context(), "write validation error response failed", "error", jsonErr)
 		}
 		return
@@ -58,16 +61,16 @@ func CustomHTTPErrorHandler(c *echo.Context, err error) {
 			message = he.Message
 		}
 
-		appError = problem.New(message, "about:blank", code)
+		problemError = problem.New(message, "about:blank", code)
 	} else {
-		appError = problem.ErrInternalServer()
+		problemError = problem.ErrInternalServer()
 	}
 
 	if code >= 500 {
 		slog.ErrorContext(c.Request().Context(), "http handler error", "error", err, "code", code)
 	}
 
-	if jsonErr := c.JSON(code, appError.WithInstance(instance)); jsonErr != nil {
+	if jsonErr := c.JSON(code, problemError.WithInstance(instance)); jsonErr != nil {
 		slog.ErrorContext(c.Request().Context(), "write generic error response failed", "error", jsonErr)
 	}
 }

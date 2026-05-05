@@ -60,7 +60,7 @@ var _ = Describe("Auth middleware", Label("unit", "middleware"), func() {
 		})(c)
 
 		Expect(nextCalled).To(BeFalse())
-		var appErr *problem.AppError
+		var appErr *problem.Error
 		Expect(errors.As(err, &appErr)).To(BeTrue())
 		Expect(appErr.Status).To(Equal(http.StatusUnauthorized))
 	})
@@ -70,7 +70,7 @@ var _ = Describe("Auth middleware", Label("unit", "middleware"), func() {
 
 		err := authmw.NewWithSession(jwt, session)(func(c *echo.Context) error { return nil })(c)
 
-		var appErr *problem.AppError
+		var appErr *problem.Error
 		Expect(errors.As(err, &appErr)).To(BeTrue())
 		Expect(appErr.Status).To(Equal(http.StatusUnauthorized))
 	})
@@ -80,7 +80,7 @@ var _ = Describe("Auth middleware", Label("unit", "middleware"), func() {
 
 		err := authmw.NewWithSession(jwt, session)(func(c *echo.Context) error { return nil })(c)
 
-		var appErr *problem.AppError
+		var appErr *problem.Error
 		Expect(errors.As(err, &appErr)).To(BeTrue())
 		Expect(appErr.Status).To(Equal(http.StatusUnauthorized))
 	})
@@ -91,7 +91,7 @@ var _ = Describe("Auth middleware", Label("unit", "middleware"), func() {
 
 		err := authmw.NewWithSession(jwt, session)(func(c *echo.Context) error { return nil })(c)
 
-		var appErr *problem.AppError
+		var appErr *problem.Error
 		Expect(errors.As(err, &appErr)).To(BeTrue())
 		Expect(appErr.Status).To(Equal(http.StatusUnauthorized))
 	})
@@ -102,7 +102,7 @@ var _ = Describe("Auth middleware", Label("unit", "middleware"), func() {
 
 		err := authmw.NewWithSession(jwt, session)(func(c *echo.Context) error { return nil })(c)
 
-		var appErr *problem.AppError
+		var appErr *problem.Error
 		Expect(errors.As(err, &appErr)).To(BeTrue())
 		Expect(appErr.Status).To(Equal(http.StatusUnauthorized))
 		Expect(appErr.Title).To(Equal("Unauthorized"))
@@ -135,7 +135,7 @@ var _ = Describe("Auth middleware", Label("unit", "middleware"), func() {
 
 		err := authmw.NewWithSession(jwt, session)(func(c *echo.Context) error { return nil })(c)
 
-		var appErr *problem.AppError
+		var appErr *problem.Error
 		Expect(errors.As(err, &appErr)).To(BeTrue())
 		Expect(appErr.Status).To(Equal(http.StatusUnauthorized))
 	})

@@ -52,8 +52,15 @@ type CreateUserRequest struct {
 ## Domain Errors in Services
 **Crucial Rule:** Services must *never* return HTTP-specific errors, `pkg/problem`, or `pkg/validator` errors. Services must return **Domain Errors** defined in `internal/domain/error.go` (e.g., `domain.ErrUserNotFound`).
 
+## Stack Trace Capture
+Capture stack traces at the **first unexpected error origin** (repository/infra/hash/service internals), not at the HTTP mapping layer.
+
+- Use `github.com/cockroachdb/errors` (`errors.WithStack` / `errors.Wrap`) when returning unexpected low-level errors.
+- Keep expected business outcomes as domain errors (for example `domain.ErrResourceNotFound`, `domain.ErrInvalidToken`) without stack wrapping.
+- `problem.Wrap(err, problem.ErrInternalServer)` should map errors to RFC 7807 response shape, not become the primary stack-capture point.
+
 ## Mapping Errors in Handlers
-Handlers are responsible for mapping Domain Errors to HTTP Problems or Validation Errors, and wrapping unexpected errors:
+Handlers are responsible for mapping Domain Errors to HTTP Problems or Validation Errors, and wrapping unexpected errors for transport response:
 
 ```go
 func (h *MyHandler) Create(c *echo.Context) error {
@@ -64,7 +71,7 @@ func (h *MyHandler) Create(c *echo.Context) error {
         if errors.Is(err, domain.ErrEmailAlreadyExists) {
             return validator.NewError("email", "Email already registered")
         }
-        // 2. Wrap unknown/unexpected errors
+        // 2. Wrap unknown/unexpected errors for HTTP response mapping
         return problem.Wrap(err, problem.ErrInternalServer)
     }
     // ...
@@ -76,6 +83,7 @@ The existing handlers in `internal/delivery/http/handler/` follow this pattern:
 - `c.Bind(&req)` handles both binding and validation.
 - Domain errors are converted to localized validation or problem responses in the handler.
 - Unexpected errors are wrapped with `problem.Wrap(err, problem.ErrInternalServer)`.
+- Stack traces for unexpected failures should already be attached from lower layers.
 
 Example mappings used in the codebase:
 - `domain.ErrEmailAlreadyExists` -> `validator.NewError("email", "Email already registered")`

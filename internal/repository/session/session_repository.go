@@ -10,6 +10,7 @@ import (
 
 	"github.com/akfaiz/go-starter-kit/internal/config"
 	"github.com/akfaiz/go-starter-kit/internal/domain"
+	cerrors "github.com/cockroachdb/errors"
 	"github.com/redis/go-redis/v9"
 )
 
@@ -34,7 +35,10 @@ func (r *repository) SavePairToken(ctx context.Context, userID int64, accessToke
 	pipe.Set(ctx, r.accessKey(userID), accessToken, r.accessTTL)
 	pipe.Set(ctx, r.refreshKey(userID), refreshToken, r.refreshTTL)
 	_, err := pipe.Exec(ctx)
-	return err
+	if err != nil {
+		return cerrors.WithStack(err)
+	}
+	return nil
 }
 
 func (r *repository) GetRefreshToken(ctx context.Context, userID int64) (string, error) {
@@ -43,7 +47,7 @@ func (r *repository) GetRefreshToken(ctx context.Context, userID int64) (string,
 		if errors.Is(err, redis.Nil) {
 			return "", domain.ErrResourceNotFound
 		}
-		return "", err
+		return "", cerrors.WithStack(err)
 	}
 	return token, nil
 }
@@ -54,13 +58,16 @@ func (r *repository) GetAccessToken(ctx context.Context, userID int64) (string, 
 		if errors.Is(err, redis.Nil) {
 			return "", domain.ErrResourceNotFound
 		}
-		return "", err
+		return "", cerrors.WithStack(err)
 	}
 	return token, nil
 }
 
 func (r *repository) DeleteSession(ctx context.Context, userID int64) error {
-	return r.rdb.Del(ctx, r.accessKey(userID), r.refreshKey(userID)).Err()
+	if err := r.rdb.Del(ctx, r.accessKey(userID), r.refreshKey(userID)).Err(); err != nil {
+		return cerrors.WithStack(err)
+	}
+	return nil
 }
 
 func (r *repository) accessKey(userID int64) string {

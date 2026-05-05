@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestAppErrorError(t *testing.T) {
+func TestErrorError(t *testing.T) {
 	t.Run("returns title only when detail is empty", func(t *testing.T) {
 		appErr := problem.New("Not Found", "about:blank", 404)
 		assert.Equal(t, "Not Found", appErr.Error())
@@ -20,7 +20,7 @@ func TestAppErrorError(t *testing.T) {
 	})
 }
 
-func TestAppErrorUnwrap(t *testing.T) {
+func TestErrorUnwrap(t *testing.T) {
 	t.Run("returns nil when no cause is set", func(t *testing.T) {
 		appErr := problem.New("Bad Request", "about:blank", 400)
 		assert.Nil(t, appErr.Unwrap())
@@ -33,7 +33,7 @@ func TestAppErrorUnwrap(t *testing.T) {
 	})
 }
 
-func TestAppErrorWithDetail(t *testing.T) {
+func TestErrorWithDetail(t *testing.T) {
 	t.Run("sets detail on error", func(t *testing.T) {
 		appErr := problem.New("Validation failed", "about:blank", 422)
 		appErr.WithDetail("Email is required")
@@ -47,7 +47,7 @@ func TestAppErrorWithDetail(t *testing.T) {
 	})
 }
 
-func TestAppErrorWithErrors(t *testing.T) {
+func TestErrorWithErrors(t *testing.T) {
 	t.Run("sets errors field with slice", func(t *testing.T) {
 		errs := []string{"Email is required", "Password is too short"}
 		appErr := problem.New("Validation failed", "about:blank", 422).WithErrors(errs)
@@ -70,7 +70,7 @@ func TestAppErrorWithErrors(t *testing.T) {
 	})
 }
 
-func TestAppErrorWithCause(t *testing.T) {
+func TestErrorWithCause(t *testing.T) {
 	t.Run("sets cause error", func(t *testing.T) {
 		cause := errors.New("database connection failed")
 		appErr := problem.New("Internal Server Error", "about:blank", 500).WithCause(cause)
@@ -87,7 +87,7 @@ func TestAppErrorWithCause(t *testing.T) {
 	})
 }
 
-func TestAppErrorWithInstance(t *testing.T) {
+func TestErrorWithInstance(t *testing.T) {
 	t.Run("sets instance field", func(t *testing.T) {
 		appErr := problem.New("Not Found", "about:blank", 404).
 			WithInstance("/users/123")
@@ -103,7 +103,7 @@ func TestAppErrorWithInstance(t *testing.T) {
 	})
 }
 
-func TestAppErrorClone(t *testing.T) {
+func TestErrorClone(t *testing.T) {
 	t.Run("creates independent copy", func(t *testing.T) {
 		original := problem.New("Bad Request", "about:blank", 400, "Invalid input").
 			WithDetail("Specific detail").
@@ -276,7 +276,7 @@ func TestWrap(t *testing.T) {
 	})
 }
 
-func TestAppErrorChaining(t *testing.T) {
+func TestErrorChaining(t *testing.T) {
 	t.Run("chains multiple methods", func(t *testing.T) {
 		appErr := problem.New("Validation failed", "about:blank", 422).
 			WithDetail("Email validation failed").
@@ -293,7 +293,7 @@ func TestAppErrorChaining(t *testing.T) {
 	})
 }
 
-func TestAppErrorRFC7807Compliance(t *testing.T) {
+func TestErrorRFC7807Compliance(t *testing.T) {
 	t.Run("follows RFC 7807 structure", func(t *testing.T) {
 		appErr := problem.New("Not Found", "https://example.com/errors/not-found", 404, "User not found")
 		appErr.WithInstance("/users/123")
@@ -308,7 +308,7 @@ func TestAppErrorRFC7807Compliance(t *testing.T) {
 	t.Run("all predefined errors have RFC 7807 fields", func(t *testing.T) {
 		errorTests := []struct {
 			name      string
-			errorFunc problem.AppErrorFunc
+			errorFunc problem.ErrorFunc
 			status    int
 		}{
 			{"ErrBadRequest", problem.ErrBadRequest, 400},

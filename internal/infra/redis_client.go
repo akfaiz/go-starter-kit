@@ -1,9 +1,8 @@
 package infra
 
 import (
-	"fmt"
-
 	"github.com/akfaiz/go-starter-kit/internal/config"
+	cerrors "github.com/cockroachdb/errors"
 	"github.com/redis/go-redis/extra/redisotel/v9"
 	"github.com/redis/go-redis/v9"
 )
@@ -16,10 +15,10 @@ func NewRedisClient(cfg config.Config) (*redis.Client, error) {
 	})
 
 	if err := redisotel.InstrumentTracing(rdb); err != nil {
-		return nil, fmt.Errorf("instrument redis tracing: %w", err)
+		return nil, cerrors.Wrap(err, "instrument redis tracing")
 	}
 	if err := redisotel.InstrumentMetrics(rdb); err != nil {
-		return nil, fmt.Errorf("instrument redis metrics: %w", err)
+		return nil, cerrors.Wrap(err, "instrument redis metrics")
 	}
 
 	return rdb, nil

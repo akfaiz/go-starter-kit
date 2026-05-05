@@ -8,6 +8,7 @@ import (
 	"github.com/akfaiz/go-starter-kit/internal/domain"
 	"github.com/akfaiz/go-starter-kit/internal/model"
 	"github.com/akfaiz/go-starter-kit/internal/telemetry"
+	cerrors "github.com/cockroachdb/errors"
 	"go.opentelemetry.io/otel"
 	"gorm.io/gorm"
 )
@@ -31,7 +32,7 @@ func (r *repository) Create(ctx context.Context, user *domain.User) error {
 		if strings.Contains(err.Error(), "users_email_unique") {
 			return domain.ErrEmailAlreadyExists
 		}
-		return err
+		return cerrors.WithStack(err)
 	}
 	user.ID = m.ID
 	user.CreatedAt = m.CreatedAt
@@ -48,7 +49,7 @@ func (r *repository) FindByEmail(ctx context.Context, email string) (*domain.Use
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, domain.ErrResourceNotFound
 		}
-		return nil, err
+		return nil, cerrors.WithStack(err)
 	}
 	return user.ToDomain(), nil
 }
@@ -62,7 +63,7 @@ func (r *repository) FindByID(ctx context.Context, id int64) (*domain.User, erro
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, domain.ErrResourceNotFound
 		}
-		return nil, err
+		return nil, cerrors.WithStack(err)
 	}
 	return user.ToDomain(), nil
 }
@@ -82,7 +83,7 @@ func (r *repository) FindAll(
 
 	total, err := query.Count(ctx, "*")
 	if err != nil {
-		return nil, err
+		return nil, cerrors.WithStack(err)
 	}
 
 	query = applySort(query, params)
@@ -92,7 +93,7 @@ func (r *repository) FindAll(
 		Offset((params.Page - 1) * params.Limit).
 		Find(ctx)
 	if err != nil {
-		return nil, err
+		return nil, cerrors.WithStack(err)
 	}
 
 	domainUsers := make([]*domain.User, len(users))
@@ -177,7 +178,7 @@ func (r *repository) Update(ctx context.Context, id int64, data *domain.UserUpda
 		if strings.Contains(err.Error(), "users_email_unique") {
 			return domain.ErrEmailAlreadyExists
 		}
-		return err
+		return cerrors.WithStack(err)
 	}
 
 	if rowsAffected == 0 {
@@ -193,7 +194,7 @@ func (r *repository) Delete(ctx context.Context, id int64) error {
 
 	rowsAffected, err := gorm.G[model.User](r.db).Where("id = ?", id).Delete(ctx)
 	if err != nil {
-		return err
+		return cerrors.WithStack(err)
 	}
 
 	if rowsAffected == 0 {

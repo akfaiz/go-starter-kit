@@ -7,6 +7,7 @@ import (
 	"github.com/akfaiz/go-starter-kit/internal/domain"
 	"github.com/akfaiz/go-starter-kit/internal/model"
 	"github.com/akfaiz/go-starter-kit/internal/telemetry"
+	cerrors "github.com/cockroachdb/errors"
 	"go.opentelemetry.io/otel"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
@@ -32,7 +33,7 @@ func (r *repository) Create(ctx context.Context, token *domain.PasswordResetToke
 		DoUpdates: clause.AssignmentColumns([]string{"token", "expires_at"}),
 	}).Create(ctx, m)
 	if err != nil {
-		return err
+		return cerrors.WithStack(err)
 	}
 	token.ID = m.ID
 	token.CreatedAt = m.CreatedAt
@@ -48,7 +49,7 @@ func (r *repository) FindOne(ctx context.Context, userID int64) (*domain.Passwor
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, domain.ErrResourceNotFound
 		}
-		return nil, err
+		return nil, cerrors.WithStack(err)
 	}
 	return m.ToDomain(), nil
 }
@@ -58,5 +59,8 @@ func (r *repository) Delete(ctx context.Context, userID int64) error {
 	defer span.End()
 
 	_, err := gorm.G[model.PasswordResetToken](r.db).Where("user_id = ?", userID).Delete(ctx)
-	return err
+	if err != nil {
+		return cerrors.WithStack(err)
+	}
+	return nil
 }

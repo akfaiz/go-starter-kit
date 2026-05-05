@@ -2,8 +2,6 @@ package problem
 
 import (
 	"fmt"
-
-	"github.com/cockroachdb/errors"
 )
 
 var (
@@ -39,10 +37,10 @@ var (
 	ErrTokenInvalid = register("Unauthorized", "about:blank", 401, "Your token is invalid. Please log in again.")
 )
 
-// AppError represents a structured error response for the application.
+// Error represents a structured error response for the application.
 //
 // It is based on RFC 7807 (Problem Details for HTTP APIs). (https://datatracker.ietf.org/doc/html/rfc7807)
-type AppError struct {
+type Error struct {
 	Type     string `json:"type"`
 	Title    string `json:"title"`
 	Status   int    `json:"status"`
@@ -53,12 +51,12 @@ type AppError struct {
 	cause error
 }
 
-// AppErrorFunc is a function type that generates an AppError with optional details.
-type AppErrorFunc func(details ...string) *AppError
+// ErrorFunc is a function type that generates an Error with optional details.
+type ErrorFunc func(details ...string) *Error
 
-// register creates a new AppErrorFunc with the provided title, type, status, and optional detail.
-func register(title, typeName string, status int, detail ...string) AppErrorFunc {
-	return func(details ...string) *AppError {
+// register creates a new ErrorFunc with the provided title, type, status, and optional detail.
+func register(title, typeName string, status int, detail ...string) ErrorFunc {
+	return func(details ...string) *Error {
 		useDetail := ""
 		if len(details) > 0 {
 			useDetail = details[0]
@@ -69,14 +67,14 @@ func register(title, typeName string, status int, detail ...string) AppErrorFunc
 	}
 }
 
-// New creates a new AppError with the provided title, type, status, and optional detail.
-func New(title, typeName string, status int, detail ...string) *AppError {
+// New creates a new Error with the provided title, type, status, and optional detail.
+func New(title, typeName string, status int, detail ...string) *Error {
 	var errDetail string
 	if len(detail) > 0 {
 		errDetail = detail[0]
 	}
 
-	return &AppError{
+	return &Error{
 		Type:   typeName,
 		Title:  title,
 		Status: status,
@@ -84,8 +82,8 @@ func New(title, typeName string, status int, detail ...string) *AppError {
 	}
 }
 
-// Error implements the error interface for AppError, returning a string representation of the error.
-func (e *AppError) Error() string {
+// Error implements the error interface for Error, returning a string representation of the error.
+func (e *Error) Error() string {
 	if e.Detail != "" {
 		return fmt.Sprintf("%s: %s", e.Title, e.Detail)
 	}
@@ -93,37 +91,37 @@ func (e *AppError) Error() string {
 }
 
 // Unwrap lets `errors.Is` and `errors.As` work.
-func (e *AppError) Unwrap() error {
+func (e *Error) Unwrap() error {
 	return e.cause
 }
 
-// WithDetail sets the Detail field of the AppError and returns the modified error for chaining.
-func (e *AppError) WithDetail(detail string) *AppError {
+// WithDetail sets the Detail field of the Error and returns the modified error for chaining.
+func (e *Error) WithDetail(detail string) *Error {
 	e.Detail = detail
 	return e
 }
 
-// WithErrors sets the Errors field of the AppError and returns the modified error for chaining.
-func (e *AppError) WithErrors(errors any) *AppError {
+// WithErrors sets the Errors field of the Error and returns the modified error for chaining.
+func (e *Error) WithErrors(errors any) *Error {
 	e.Errors = errors
 	return e
 }
 
-// WithCause sets the cause of the AppError and returns the modified error for chaining.
-func (e *AppError) WithCause(cause error) *AppError {
+// WithCause sets the cause of the Error and returns the modified error for chaining.
+func (e *Error) WithCause(cause error) *Error {
 	e.cause = cause
 	return e
 }
 
-// WithInstance sets the Instance field of the AppError and returns the modified error for chaining.
-func (e *AppError) WithInstance(instance string) *AppError {
+// WithInstance sets the Instance field of the Error and returns the modified error for chaining.
+func (e *Error) WithInstance(instance string) *Error {
 	e.Instance = instance
 	return e
 }
 
-// Clone creates a copy of the AppError, allowing you to modify the copy without affecting the original error.
-func (e *AppError) Clone() *AppError {
-	return &AppError{
+// Clone creates a copy of the Error, allowing you to modify the copy without affecting the original error.
+func (e *Error) Clone() *Error {
+	return &Error{
 		Type:     e.Type,
 		Title:    e.Title,
 		Status:   e.Status,
@@ -134,10 +132,10 @@ func (e *AppError) Clone() *AppError {
 	}
 }
 
-// Wrap takes a standard error and an AppErrorFunc, and returns a new AppError that wraps the original error with a stack trace.
-func Wrap(err error, appErr AppErrorFunc) *AppError {
+// Wrap takes a standard error and an ErrorFunc, and returns a new Error that wraps the original error.
+func Wrap(err error, appErr ErrorFunc) *Error {
 	if err == nil || appErr == nil {
 		return nil
 	}
-	return appErr().WithCause(errors.WithStack(err))
+	return appErr().WithCause(err)
 }

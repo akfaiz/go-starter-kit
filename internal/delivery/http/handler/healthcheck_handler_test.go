@@ -1,11 +1,14 @@
 package handler_test
 
 import (
+	"context"
 	"database/sql"
+	"database/sql/driver"
 	"errors"
+	"fmt"
 	"net/http"
+	"sync/atomic"
 
-	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/akfaiz/go-starter-kit/internal/delivery/http/handler"
 	"github.com/alicebob/miniredis/v2"
 	"github.com/gavv/httpexpect/v2"
@@ -17,6 +20,34 @@ import (
 	"gorm.io/gorm"
 )
 
+type pingDriver struct {
+	pingErr error
+}
+
+type pingConn struct {
+	pingErr error
+}
+
+func (d *pingDriver) Open(_ string) (driver.Conn, error) {
+	return &pingConn{pingErr: d.pingErr}, nil
+}
+
+func (c *pingConn) Prepare(_ string) (driver.Stmt, error) {
+	return nil, errors.New("not implemented")
+}
+
+func (c *pingConn) Close() error { return nil }
+
+func (c *pingConn) Begin() (driver.Tx, error) {
+	return nil, errors.New("not implemented")
+}
+
+func (c *pingConn) Ping(_ context.Context) error {
+	return c.pingErr
+}
+
+var pingDriverCounter atomic.Uint64
+
 var _ = Describe("HealthCheckHandler", Label("unit", "handler"), func() {
 	var (
 		h      *handler.HealthCheckHandler
@@ -26,18 +57,20 @@ var _ = Describe("HealthCheckHandler", Label("unit", "handler"), func() {
 		rdb    *redis.Client
 	)
 
-	newDB := func() (*gorm.DB, sqlmock.Sqlmock, *sql.DB) {
-		sqldb, mock, err := sqlmock.New(sqlmock.MonitorPingsOption(true))
-		Expect(err).NotTo(HaveOccurred())
+	newDB := func(pingErr error) (*gorm.DB, *sql.DB) {
+		driverName := fmt.Sprintf("healthcheck-ping-%d", pingDriverCounter.Add(1))
+		sql.Register(driverName, &pingDriver{pingErr: pingErr})
 
-		// GORM tries to ping the DB on opening
-		mock.ExpectPing()
+		sqldb, err := sql.Open(driverName, "")
+		Expect(err).NotTo(HaveOccurred())
 
 		db, err := gorm.Open(postgres.New(postgres.Config{
 			Conn: sqldb,
-		}), &gorm.Config{})
+		}), &gorm.Config{
+			DisableAutomaticPing: true,
+		})
 		Expect(err).NotTo(HaveOccurred())
-		return db, mock, sqldb
+		return db, sqldb
 	}
 
 	BeforeEach(func() {
@@ -57,12 +90,11 @@ var _ = Describe("HealthCheckHandler", Label("unit", "handler"), func() {
 	})
 
 	It("returns ok when database and redis ping succeeds", func() {
-		db, mock, sqldb := newDB()
+		db, sqldb := newDB(nil)
 		defer func() {
 			_ = sqldb.Close()
 		}()
 
-		mock.ExpectPing()
 		h = handler.NewHealthCheckHandler(db, rdb)
 		e.GET("/health", h.HealthCheck)
 
@@ -76,17 +108,14 @@ var _ = Describe("HealthCheckHandler", Label("unit", "handler"), func() {
 			Value("checks").Object().
 			HasValue("database", "ok").
 			HasValue("redis", "ok")
-
-		Expect(mock.ExpectationsWereMet()).To(Succeed())
 	})
 
 	It("returns error payload when database ping fails", func() {
-		db, mock, sqldb := newDB()
+		db, sqldb := newDB(errors.New("db unreachable"))
 		defer func() {
 			_ = sqldb.Close()
 		}()
 
-		mock.ExpectPing().WillReturnError(errors.New("db unreachable"))
 		h = handler.NewHealthCheckHandler(db, rdb)
 		e.GET("/health", h.HealthCheck)
 
@@ -96,17 +125,14 @@ var _ = Describe("HealthCheckHandler", Label("unit", "handler"), func() {
 			JSON(httpexpect.ContentOpts{MediaType: "application/problem+json"}).
 			Object().
 			HasValue("detail", "Database connection error")
-
-		Expect(mock.ExpectationsWereMet()).To(Succeed())
 	})
 
 	It("returns ok when redis ping fails", func() {
-		db, mock, sqldb := newDB()
+		db, sqldb := newDB(nil)
 		defer func() {
 			_ = sqldb.Close()
 		}()
 
-		mock.ExpectPing()
 		mr.Close() // Simulate redis down
 
 		h = handler.NewHealthCheckHandler(db, rdb)
@@ -122,7 +148,5 @@ var _ = Describe("HealthCheckHandler", Label("unit", "handler"), func() {
 			Value("checks").Object().
 			HasValue("database", "ok").
 			HasValue("redis", "degraded")
-
-		Expect(mock.ExpectationsWereMet()).To(Succeed())
 	})
 })
