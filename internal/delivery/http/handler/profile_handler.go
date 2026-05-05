@@ -6,6 +6,7 @@ import (
 	"github.com/akfaiz/go-starter-kit/internal/delivery/http/handler/dto"
 	"github.com/akfaiz/go-starter-kit/internal/delivery/http/middleware/auth"
 	"github.com/akfaiz/go-starter-kit/internal/domain"
+	"github.com/akfaiz/go-starter-kit/pkg/i18n"
 	"github.com/akfaiz/go-starter-kit/pkg/problem"
 	"github.com/akfaiz/go-starter-kit/pkg/validator"
 	"github.com/labstack/echo/v5"
@@ -54,7 +55,7 @@ func (h *ProfileHandler) UpdateProfile(c *echo.Context) error {
 
 	if err := h.userService.UpdateProfile(c.Request().Context(), claims.ID, user); err != nil {
 		if errors.Is(err, domain.ErrEmailAlreadyExists) {
-			return validator.NewError("email", "Email already exists")
+			return validator.NewError("email", i18n.T(c, "profile.email_exists"))
 		}
 		return problem.Wrap(err, problem.ErrInternalServer)
 	}
@@ -86,11 +87,14 @@ func (h *ProfileHandler) ChangePassword(c *echo.Context) error {
 		req.NewPassword,
 	); err != nil {
 		if errors.Is(err, domain.ErrInvalidPassword) {
-			return validator.NewError("current_password", "Current password is incorrect")
+			return validator.NewError(
+				"current_password",
+				i18n.T(c, "profile.current_password_invalid"),
+			)
 		}
 		return problem.Wrap(err, problem.ErrInternalServer)
 	}
 
-	res := dto.NewMessage(200, "Password changed successfully")
+	res := dto.NewMessage(200, i18n.T(c, "profile.password_changed"))
 	return c.JSON(res.Status, res)
 }

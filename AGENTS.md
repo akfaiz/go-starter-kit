@@ -30,6 +30,7 @@
 - `make coverage-html`: render `coverage.html` from the current `coverage.out`.
 - `make clean`: remove `bin/`, `.covdata/`, `coverage.out`, `coverage.html`.
 - `make migrate-up` / `make migrate-down`: apply or roll back schema migrations.
+- `go run . migrate create --name=<migration_name>`: scaffold a new migration file in `db/migrations/`.
 - `go run . migrate status`: check migration state.
 - `make build`: compile binary to `bin/go-starter-kit`.
 - `make docker-build` / `make docker-run`: build and run the container image.

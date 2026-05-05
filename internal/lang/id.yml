@@ -1,9 +1,27 @@
-id:
+auth:
+  failed: "Kredensial ini tidak cocok dengan data kami"
+  password: "Kata sandi yang diberikan salah"
+  email_exists: "Email sudah terdaftar"
+  login_success: "Login berhasil"
+  register_success: "Pengguna berhasil didaftarkan"
+  invalid_refresh_token: "Refresh token tidak valid"
+passwords:
+  reset: "Kata sandi Anda telah direset"
+  sent: "Kami telah mengirimkan tautan reset kata sandi ke email Anda!"
+  token: "Token reset kata sandi ini tidak valid"
+  user: "Kami tidak dapat menemukan pengguna dengan alamat email tersebut"
+  otp_valid: "OTP valid"
+  reset_success: "Kata sandi berhasil direset"
+profile:
+  update_success: "Profil berhasil diperbarui"
+  email_exists: "Email sudah ada"
+  current_password_invalid: "Kata sandi saat ini salah"
+  password_changed: "Kata sandi berhasil diubah"
+middleware:
   auth:
-    failed: "Kredensial ini tidak cocok dengan data kami."
-    password: "Kata sandi yang diberikan salah."
-  passwords:
-    reset: "Kata sandi Anda telah diatur ulang."
-    sent: "Kami telah mengirimkan email berisi tautan atur ulang kata sandi Anda!"
-    token: "Token atur ulang kata sandi ini tidak valid."
-    user: "Kami tidak dapat menemukan pengguna dengan alamat email tersebut."
+    missing_header: "header Authorization tidak ditemukan"
+    invalid_format: "Header Authorization harus diawali dengan 'Bearer '"
+    missing_token: "token tidak ditemukan dalam header Authorization"
+    invalid_session: "sesi tidak valid"
+    token_expired: "Sesi Anda telah berakhir. Silakan masuk kembali."
+    token_invalid: "Token Anda tidak valid. Silakan masuk kembali."

@@ -3,6 +3,7 @@ package e2e_test
 import (
 	"net/http"
 
+	"github.com/akfaiz/go-starter-kit/test"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
@@ -74,8 +75,63 @@ var _ = Describe("Auth Flow E2E", Label("e2e"), func() {
 			}).
 			Expect().
 			Status(http.StatusUnprocessableEntity)
-		resp.Header("Content-Type").Contains("application/problem+json")
-		resp.Body().Contains(`"title":"Validation failed"`)
+		resp.JSON(test.ProblemJSON).Object().HasValue("title", "Validation failed")
+		resp.JSON(test.ProblemJSON).
+			Object().
+			Value("errors").
+			Array().
+			Value(0).
+			Object().
+			HasValue("message", "These credentials do not match our records")
+	})
+
+	It("returns validation error for existing email during registration", func() {
+		payload := map[string]any{
+			"name":                  "Duplicate User",
+			"email":                 "duplicate@example.com",
+			"password":              "password123",
+			"password_confirmation": "password123",
+		}
+
+		e2eExpect.POST("/api/v1/auth/register").
+			WithJSON(payload).
+			Expect().
+			Status(http.StatusCreated)
+
+		resp := e2eExpect.POST("/api/v1/auth/register").
+			WithJSON(payload).
+			Expect().
+			Status(http.StatusUnprocessableEntity)
+
+		resp.JSON(test.ProblemJSON).
+			Object().
+			Value("errors").
+			Array().
+			Value(0).
+			Object().
+			HasValue("message", "Email already registered")
+	})
+
+	It("returns unauthorized when fetching profile without token", func() {
+		e2eExpect.GET("/api/v1/profile").
+			Expect().
+			Status(http.StatusUnauthorized).
+			JSON(test.ProblemJSON).
+			Object().
+			HasValue("title", "Unauthorized access")
+	})
+
+	It("returns unprocessable entity for malformed registration payload", func() {
+		e2eExpect.POST("/api/v1/auth/register").
+			WithJSON(map[string]any{
+				"name":  "Short",
+				"email": "not-an-email",
+			}).
+			Expect().
+			Status(http.StatusUnprocessableEntity).
+			JSON(test.ProblemJSON).
+			Object().
+			HasValue("title", "Validation failed")
 	})
 
 	It("refreshes token successfully", func() {

@@ -6,6 +6,7 @@ import (
 
 	"github.com/akfaiz/go-starter-kit/internal/delivery/http/handler"
 	"github.com/akfaiz/go-starter-kit/internal/domain"
+	"github.com/akfaiz/go-starter-kit/test"
 	"github.com/akfaiz/go-starter-kit/test/mocks"
 	"github.com/gavv/httpexpect/v2"
 	"github.com/labstack/echo/v5"
@@ -56,7 +57,7 @@ var _ = Describe("ProfileHandler", Label("unit", "handler"), func() {
 			expect.GET("/profile").
 				Expect().
 				Status(http.StatusUnauthorized).
-				JSON(httpexpect.ContentOpts{MediaType: "application/problem+json"}).
+				JSON(test.ProblemJSON).
 				Object().
 				HasValue("title", "Unauthorized access")
 		})

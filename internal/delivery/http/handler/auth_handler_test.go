@@ -7,6 +7,7 @@ import (
 
 	"github.com/akfaiz/go-starter-kit/internal/delivery/http/handler"
 	"github.com/akfaiz/go-starter-kit/internal/domain"
+	"github.com/akfaiz/go-starter-kit/test"
 	"github.com/akfaiz/go-starter-kit/test/mocks"
 	"github.com/gavv/httpexpect/v2"
 	"github.com/labstack/echo/v5"
@@ -89,6 +90,27 @@ var _ = Describe("AuthHandler", Label("unit", "handler"), func() {
 				HasValue("status", 200).
 				HasValue("message", "Login successful")
 		})
+
+		It("returns 422 with error message when credentials are invalid", func() {
+			service.EXPECT().
+				Login(gomock.Any(), "john@example.com", "wrongpass").
+				Return(nil, domain.ErrInvalidCredentials)
+
+			expect.POST("/auth/login").
+				WithJSON(map[string]any{
+					"email":    "john@example.com",
+					"password": "wrongpass",
+				}).
+				Expect().
+				Status(http.StatusUnprocessableEntity).
+				JSON(test.ProblemJSON).
+				Object().
+				Value("errors").
+				Array().
+				Value(0).
+				Object().
+				HasValue("message", "These credentials do not match our records")
+		})
 	})
 
 	Describe("RefreshToken", func() {
@@ -155,7 +177,7 @@ var _ = Describe("AuthHandler", Label("unit", "handler"), func() {
 				}).
 				Expect().
 				Status(http.StatusBadRequest).
-				JSON(httpexpect.ContentOpts{MediaType: "application/problem+json"}).
+				JSON(test.ProblemJSON).
 				Object().
 				HasValue("title", "Bad Request")
 		})
@@ -171,7 +193,8 @@ var _ = Describe("AuthHandler", Label("unit", "handler"), func() {
 					"otp":   "111111",
 				}).
 				Expect().
-				Status(http.StatusBadRequest)
+				Status(http.StatusBadRequest).
+				JSON(test.ProblemJSON)
 		})
 
 		It("returns 500 on unexpected error (handleOTPError)", func() {
@@ -185,7 +208,8 @@ var _ = Describe("AuthHandler", Label("unit", "handler"), func() {
 					"otp":   "123456",
 				}).
 				Expect().
-				Status(http.StatusInternalServerError)
+				Status(http.StatusInternalServerError).
+				JSON(test.ProblemJSON)
 		})
 	})
 

@@ -3,6 +3,7 @@ package handler_test
 import (
 	"net/http"
 
+	"github.com/akfaiz/go-starter-kit/internal/delivery/http/middleware"
 	"github.com/akfaiz/go-starter-kit/internal/delivery/http/server"
 	appvalidator "github.com/akfaiz/go-starter-kit/pkg/validator"
 	"github.com/gavv/httpexpect/v2"
@@ -22,6 +23,7 @@ func newExpect(e *echo.Echo) *httpexpect.Expect {
 
 func setupEcho() *echo.Echo {
 	e := echo.New()
+	e.Use(middleware.I18n())
 	v := appvalidator.New()
 	e.Validator = v
 	e.Binder = appvalidator.NewBinder(e.Binder, v)

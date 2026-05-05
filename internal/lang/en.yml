@@ -1,9 +1,27 @@
-en:
+auth:
+  failed: "These credentials do not match our records"
+  password: "The provided password is incorrect"
+  email_exists: "Email already registered"
+  login_success: "Login successful"
+  register_success: "User registered successfully"
+  invalid_refresh_token: "Invalid refresh token"
+passwords:
+  reset: "Your password has been reset"
+  sent: "We have emailed your password reset link!"
+  token: "This password reset token is invalid"
+  user: "We can't find a user with that email address"
+  otp_valid: "OTP is valid"
+  reset_success: "Password has been reset successfully"
+profile:
+  update_success: "Profile updated successfully"
+  email_exists: "Email already exists"
+  current_password_invalid: "Current password is incorrect"
+  password_changed: "Password changed successfully"
+middleware:
   auth:
-    failed: "These credentials do not match our records."
-    password: "The provided password is incorrect."
-  passwords:
-    reset: "Your password has been reset."
-    sent: "We have emailed your password reset link!"
-    token: "This password reset token is invalid."
-    user: "We can't find a user with that email address."
+    missing_header: "missing Authorization header"
+    invalid_format: "Authorization header must start with 'Bearer '"
+    missing_token: "missing token in Authorization header"
+    invalid_session: "invalid session"
+    token_expired: "Your session has expired. Please log in again."
+    token_invalid: "Your token is invalid. Please log in again."

@@ -1,7 +1,7 @@
 package middleware
 
 import (
-	"github.com/invopop/ctxi18n"
+	"github.com/akfaiz/go-starter-kit/pkg/i18n"
 	"github.com/labstack/echo/v5"
 )
 
@@ -15,11 +15,12 @@ func I18n() echo.MiddlewareFunc {
 				acceptLanguage = defaultLocale
 			}
 			ctx := c.Request().Context()
-			ctx, err := ctxi18n.WithLocale(ctx, acceptLanguage)
+			ctx, err := i18n.WithLocale(ctx, acceptLanguage)
 			if err != nil {
-				ctx, _ = ctxi18n.WithLocale(ctx, defaultLocale)
+				ctx, _ = i18n.WithLocale(ctx, defaultLocale)
 			}
 			c.SetRequest(c.Request().WithContext(ctx))
+
 			return next(c)
 		}
 	}

@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/akfaiz/go-starter-kit/internal/domain"
+	"github.com/akfaiz/go-starter-kit/pkg/i18n"
 	"github.com/akfaiz/go-starter-kit/pkg/problem"
 	"github.com/labstack/echo/v5"
 )
@@ -26,7 +27,7 @@ func New(jwtManager domain.JWTManager) echo.MiddlewareFunc {
 
 			claims, err := jwtManager.VerifyAccessToken(token)
 			if err != nil {
-				return handleTokenError(err)
+				return handleTokenError(c, err)
 			}
 
 			setUser(c, claims)
@@ -39,6 +40,7 @@ func New(jwtManager domain.JWTManager) echo.MiddlewareFunc {
 func NewWithSession(jwtManager domain.JWTManager, sessionRepo domain.SessionRepository) echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c *echo.Context) error {
+			ctx := c.Request().Context()
 			token, err := extractToken(c)
 			if err != nil {
 				return err
@@ -46,12 +48,12 @@ func NewWithSession(jwtManager domain.JWTManager, sessionRepo domain.SessionRepo
 
 			claims, err := jwtManager.VerifyAccessToken(token)
 			if err != nil {
-				return handleTokenError(err)
+				return handleTokenError(c, err)
 			}
 
-			storedToken, err := sessionRepo.GetAccessToken(c.Request().Context(), claims.ID)
+			storedToken, err := sessionRepo.GetAccessToken(ctx, claims.ID)
 			if err != nil || storedToken != token {
-				return problem.ErrUnauthorized("invalid session")
+				return problem.ErrUnauthorized(i18n.T(c, "middleware.auth.invalid_session"))
 			}
 
 			setUser(c, claims)
@@ -63,27 +65,27 @@ func NewWithSession(jwtManager domain.JWTManager, sessionRepo domain.SessionRepo
 func extractToken(c *echo.Context) (string, error) {
 	auth := c.Request().Header.Get("Authorization")
 	if auth == "" {
-		return "", problem.ErrUnauthorized("missing Authorization header")
+		return "", problem.ErrUnauthorized(i18n.T(c, "middleware.auth.missing_header"))
 	}
 
 	parts := strings.SplitN(auth, " ", 2)
 	if len(parts) != 2 || !strings.EqualFold(parts[0], "Bearer") {
-		return "", problem.ErrUnauthorized("Authorization header must start with 'Bearer '")
+		return "", problem.ErrUnauthorized(i18n.T(c, "middleware.auth.invalid_format"))
 	}
 
 	token := parts[1]
 	if token == "" {
-		return "", problem.ErrUnauthorized("missing token in Authorization header")
+		return "", problem.ErrUnauthorized(i18n.T(c, "middleware.auth.missing_token"))
 	}
 
 	return token, nil
 }
 
-func handleTokenError(err error) error {
+func handleTokenError(c *echo.Context, err error) error {
 	if errors.Is(err, domain.ErrTokenExpired) {
-		return problem.ErrTokenExpired()
+		return problem.ErrTokenExpired(i18n.T(c, "middleware.auth.token_expired"))
 	}
-	return problem.ErrUnauthorized()
+	return problem.ErrUnauthorized(i18n.T(c, "middleware.auth.token_invalid"))
 }
 
 func setUser(c *echo.Context, claims *domain.JWTClaims) {

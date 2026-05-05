@@ -9,8 +9,10 @@ import (
 
 	authmw "github.com/akfaiz/go-starter-kit/internal/delivery/http/middleware/auth"
 	"github.com/akfaiz/go-starter-kit/internal/domain"
+	"github.com/akfaiz/go-starter-kit/internal/lang"
 	"github.com/akfaiz/go-starter-kit/pkg/problem"
 	"github.com/akfaiz/go-starter-kit/test/mocks"
+	"github.com/invopop/ctxi18n"
 	"github.com/labstack/echo/v5"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -21,6 +23,10 @@ func TestAuthMiddleware(t *testing.T) {
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "Auth Middleware Suite")
 }
+
+var _ = BeforeSuite(func() {
+	lang.Init()
+})
 
 var _ = Describe("Auth middleware", Label("unit", "middleware"), func() {
 	var (
@@ -35,6 +41,11 @@ var _ = Describe("Auth middleware", Label("unit", "middleware"), func() {
 		if authHeader != "" {
 			req.Header.Set("Authorization", authHeader)
 		}
+
+		ctx := req.Context()
+		ctx, _ = ctxi18n.WithLocale(ctx, "en")
+		req = req.WithContext(ctx)
+
 		rec := httptest.NewRecorder()
 		c := e.NewContext(req, rec)
 		return c
@@ -63,6 +74,20 @@ var _ = Describe("Auth middleware", Label("unit", "middleware"), func() {
 		var appErr *problem.Error
 		Expect(errors.As(err, &appErr)).To(BeTrue())
 		Expect(appErr.Status).To(Equal(http.StatusUnauthorized))
+	})
+
+	It("returns localized unauthorized when Authorization header is missing (id)", func() {
+		c := newContext("")
+		// override locale to id
+		ctx, _ := ctxi18n.WithLocale(c.Request().Context(), "id")
+		c.SetRequest(c.Request().WithContext(ctx))
+
+		err := authmw.NewWithSession(jwt, session)(func(c *echo.Context) error { return nil })(c)
+
+		var appErr *problem.Error
+		Expect(errors.As(err, &appErr)).To(BeTrue())
+		Expect(appErr.Status).To(Equal(http.StatusUnauthorized))
+		Expect(appErr.Detail).To(Equal("header Authorization tidak ditemukan"))
 	})
 
 	It("returns unauthorized when Authorization header is not Bearer", func() {
