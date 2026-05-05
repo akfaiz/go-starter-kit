@@ -9,11 +9,9 @@ import (
 	"github.com/akfaiz/go-starter-kit/internal/config"
 	"github.com/akfaiz/go-starter-kit/internal/delivery/queue"
 	"github.com/akfaiz/go-starter-kit/internal/domain"
-	"github.com/akfaiz/go-starter-kit/internal/lang"
 	"github.com/akfaiz/go-starter-kit/internal/service/auth"
 	"github.com/akfaiz/go-starter-kit/test/mocks"
 	"github.com/alicebob/miniredis/v2"
-	"github.com/invopop/ctxi18n"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"go.uber.org/mock/gomock"
@@ -23,10 +21,6 @@ func TestAuth(t *testing.T) {
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "Auth Suite")
 }
-
-var _ = BeforeSuite(func() {
-	lang.Init()
-})
 
 var _ = Describe("Auth", Label("unit", "usecase"), func() {
 	var (
@@ -77,7 +71,6 @@ var _ = Describe("Auth", Label("unit", "usecase"), func() {
 		)
 
 		ctx = context.Background()
-		ctx, _ = ctxi18n.WithLocale(ctx, "en")
 
 		DeferCleanup(func() {
 			ctrl.Finish()

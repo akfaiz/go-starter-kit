@@ -1,58 +1,56 @@
-# Project Overview
+# Go API Starter Kit - Project Context
 
-This is a **Go API Starter Kit**, an API-only project built with Go.
+This is a production-ready, layered Go API starter kit. It follows clean architecture principles and utilizes Uber FX for dependency injection.
 
-## Main Technologies
-- **Language:** Go 1.25.7
-- **Web Framework:** Echo v5
-- **API Documentation:** OpenAPI via `github.com/oaswrap/spec/adapter/echov5openapi`
-- **Database / ORM:** PostgreSQL with GORM
-- **Caching & Session:** Redis (used for session storage)
-- **Migrations:** Migris
-- **Authentication:** JWT (Access and Refresh tokens) with token pair session management in Redis.
-- **Dependency Injection:** Uber FX
-- **Observability:** OpenTelemetry (HTTP, GORM DB, Redis tracing) with Jaeger for local visualization.
-- **Email:** go-mailgen for email content
+## Project Overview
 
-## Architecture & Structure
-The project follows a standard structured layout common in Go APIs:
-- `cmd/`: Command-line entry points (`root.go`, `migrate/`, `serve/`).
-- `internal/`: Core application logic, separated by concerns:
-  - `config/`: Configuration mapping.
-  - `delivery/http/`: Handlers, middleware, routes, and server logic.
-  - `domain/`: Domain interfaces and models.
-  - `hash/`: Password hashing (Argon2id) and JWT management.
-  - `infra/`: Infrastructure integrations (Database, Redis, SMTP).
-  - `repository/`: Data access layer for User, Session, and PasswordResetToken.
-  - `service/`: Business logic layer.
-- `db/migrations/`: Database migration files.
-- `test/`: End-to-end tests and mocks.
+- **Core Technologies:** Go 1.25+, Echo v5 (HTTP), GORM (PostgreSQL), Redis (Asynq, Sessions), Uber FX (DI), OpenTelemetry (Tracing).
+- **Architecture:** Layered Architecture
+  - `delivery/http`: Echo handlers, routes, and middleware.
+  - `delivery/queue`: Asynq task workers and handlers.
+  - `service`: Business logic layer.
+  - `repository`: Data persistence layer (GORM).
+  - `domain`: Core business entities, interfaces, and errors.
+  - `model`: GORM database models.
+  - `infra`: External clients (DB, Redis, SMTP).
 
 ## Building and Running
 
-Commands are available via the `Makefile` and `go run`:
-
-- **Install Dependencies:** `make tidy` or `go mod tidy`
-- **Run Locally:** `make run` or `go run . serve`
-- **Run Migrations:** 
-  - `make migrate-up` or `go run . migrate up`
-  - `make migrate-down` or `go run . migrate down`
-- **Build Binary:** `make build`
-- **Docker Compose:** `docker compose up --build` or `make docker-run`
-
-## Testing
-
-Testing is primarily driven by Ginkgo and Go test framework:
-
-- **Run Unit Tests:** `make test`
-- **Run E2E Tests:** `make test-e2e`
-- **Generate Coverage:** `make coverage` or `make coverage-all`
-- **View Coverage in HTML:** `make coverage-html`
+- **Environment Setup:** `cp .env.example .env` and start dependencies via `docker compose up -d db redis jaeger`.
+- **Run API:** `make run` or `go run . serve`.
+- **Run Worker:** `go run . queue`.
+- **Run All:** `go run . serve-all`.
+- **Migrations:**
+  - `make migrate-up` / `go run . migrate up`
+  - `go run . migrate status`
+- **Linting:** `make lint` or `make lint-fix`.
+- **Formatting:** `make fmt`.
 
 ## Development Conventions
 
-- Uses `golangci-lint` for code quality checks (`make lint`, `make lint-fix`).
-- Follows standard Go formatting (`make fmt`).
-- Use of Dependency Injection (`go.uber.org/fx`).
-- Mocks are managed and likely generated using `go.uber.org/mock`.
-- End-to-end testing practices are maintained alongside unit tests.
+- **Dependency Injection:** Use `go.uber.org/fx`. Register new components in the `Module` variable of the respective package.
+- **API Layering:**
+  - **Handlers:** Use `c.Bind` for automatic request binding and validation (via `pkg/validator`). Return `error` from handlers.
+  - **DTOs:** Located in `internal/delivery/http/handler/dto`. Use for request/response bodies.
+  - **Errors:** Map business errors from the `service` layer to `problem` (RFC 7807) or `validator` errors in the `handler`.
+- **Business Logic:** Encapsulated in the `service` layer. Services interact with `repository` interfaces defined in the `domain` layer.
+- **Persistence:** Use GORM in the `repository` layer. Models are defined in `internal/model`.
+- **Validation:** Use `github.com/go-playground/validator/v10`. Localized validation messages are supported.
+- **I18n:** Use `github.com/invopop/ctxi18n` for localized strings. Catalogs are in `internal/lang`.
+- **Tracing:** Spans are automatically propagated across layers (HTTP -> Service -> Repository -> DB/Redis/Queue). Use `telemetry.StartSpan(ctx, "name")` for custom spans.
+
+## Testing Practices
+
+- **Framework:** Ginkgo & Gomega.
+- **Unit Tests:** `make test`. Located alongside the code (e.g., `*_test.go`).
+- **E2E Tests:** `make test-e2e`. Located in `test/e2e`.
+- **Mocks:** Generated via `go.uber.org/mock`. Located in `test/mocks`.
+
+## Key Files
+
+- `main.go`: Entry point, initializes FX app.
+- `cmd/`: CLI command definitions (using `urfave/cli/v3`).
+- `internal/config/config.go`: Configuration loading and validation.
+- `internal/domain/error.go`: Centralized business errors.
+- `pkg/problem/errors.go`: RFC 7807 problem response helpers.
+- `pkg/validator/binder.go`: Custom Echo binder for auto-validation.

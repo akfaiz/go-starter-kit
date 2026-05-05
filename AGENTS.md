@@ -6,22 +6,41 @@
 - Shared reusable utilities are in `pkg/` (for example `pkg/env`, `pkg/problem`, and `pkg/validator`).
 - Database migrations are in `db/migrations/`.
 - Tests are colocated with code as `*_test.go`; integration/E2E tests live in `test/e2e/`, and shared test helpers live in `test/`.
-- Project-specific agent skills live in `.agents/skills/`; consult the relevant skill before changing API layering, persistence, validation/errors, FX wiring, queues, email, tracing, or tests.
+- Project-specific agent skills live in `.agents/skills/`; **read the relevant skill file before changing any of the topics below**:
+  - [go-api-layering](.agents/skills/go-api-layering/SKILL.md) — adding endpoints, DTO/domain mappings, feature workflow
+  - [go-errors-validation](.agents/skills/go-errors-validation/SKILL.md) — domain errors, RFC 7807 problem responses, validation
+  - [go-fx-di](.agents/skills/go-fx-di/SKILL.md) — FX modules, constructors, lifecycle hooks
+  - [go-gorm-persistence](.agents/skills/go-gorm-persistence/SKILL.md) — GORM models, migrations, `gorm.G[T]()` helper
+  - [go-queue-processing](.agents/skills/go-queue-processing/SKILL.md) — Asynq tasks, payloads, enqueuing
+  - [go-email-notifications](.agents/skills/go-email-notifications/SKILL.md) — mailgen composition, queue-based delivery
+  - [go-i18n-and-localized-errors](.agents/skills/go-i18n-and-localized-errors/SKILL.md) — ctxi18n locale flow, translation catalogs
+  - [go-telemetry-tracing](.agents/skills/go-telemetry-tracing/SKILL.md) — OpenTelemetry spans, trace propagation
+  - [go-testing-patterns](.agents/skills/go-testing-patterns/SKILL.md) — Ginkgo/Gomega, mocks, Testcontainers, E2E helpers
 
 ## Build, Test, and Development Commands
 - `make tidy`: sync module dependencies with `go.mod`/`go.sum`.
 - `make fmt`: run `go fmt ./...`.
 - `make lint` / `make lint-fix`: run or auto-fix `golangci-lint`.
 - `make run`: run the HTTP API locally (`go run . serve`).
+- `go run . queue`: run the Asynq background worker.
+- `go run . serve-all`: run HTTP API + worker together.
 - `make test`: run the unit and package test suite via Ginkgo, excluding `cmd`, migrations, mocks, and E2E tests.
 - `make test-e2e`: run the end-to-end suite in `test/e2e/`.
 - `make coverage` / `make coverage-all`: generate coverage for unit tests or merged unit + E2E coverage.
 - `make coverage-html`: render `coverage.html` from the current `coverage.out`.
+- `make clean`: remove `bin/`, `.covdata/`, `coverage.out`, `coverage.html`.
 - `make migrate-up` / `make migrate-down`: apply or roll back schema migrations.
+- `go run . migrate status`: check migration state.
 - `make build`: compile binary to `bin/go-starter-kit`.
 - `make docker-build` / `make docker-run`: build and run the container image.
 - `docker compose up --build`: start the local stack using containers.
 - For local non-container development, run `docker compose up -d db redis jaeger`, then `make migrate-up`, then `make run`.
+- Jaeger UI for trace inspection: `http://localhost:16686`.
+- Live reload is supported via `.air.toml` (run `air` if installed).
+
+## Go Module
+- Module path: `github.com/akfaiz/go-starter-kit`. Use this for all internal imports.
+- CLI framework: `github.com/urfave/cli/v3`; HTTP framework: Echo v5; DI: `go.uber.org/fx`.
 
 ## Coding Style & Naming Conventions
 - Follow standard Go formatting; run `gofmt` (or `go fmt ./...`) before pushing.
@@ -49,6 +68,7 @@
 - Prefer table-driven tests for service/repository behavior; use `test/e2e/` for full-stack flows.
 - Handler tests should assert HTTP status, response shape, and `application/problem+json` error bodies where applicable.
 - Repository and E2E tests may need PostgreSQL/Redis test containers; keep helpers in `test/` instead of duplicating container setup.
+- Ginkgo handler test suites must call `lang.Init()` in `BeforeSuite` to initialise the i18n catalogs before any handler is exercised.
 - Run `make fmt` after code edits and `make test` for behavior changes. Add `make test-e2e` when an API flow, persistence contract, or infrastructure integration changes.
 
 ## Commit & Pull Request Guidelines
