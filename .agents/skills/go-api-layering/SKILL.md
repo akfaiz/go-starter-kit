@@ -1,11 +1,11 @@
 ---
 name: go-api-layering
-description: Guidance on the delivery -> service -> repository flow and domain-driven design in this Go API. Use when adding new features, endpoints, or business logic.
+description: "Delivery -> service -> repository boundaries for this Go API. Use when adding endpoints, features, DTO/domain mappings, service methods, repositories, or business logic."
 ---
 
 # Go API Layering
 
-This project follows a structured layering pattern: `Delivery (HTTP) -> Service (Business Logic) -> Repository (Data Access)`.
+This project follows `delivery -> service -> repository`, with `internal/domain` as the contract layer between them.
 
 ## Layer Responsibilities
 
@@ -13,11 +13,13 @@ This project follows a structured layering pattern: `Delivery (HTTP) -> Service 
 - **Location**: `internal/delivery/http/handler/`
 - **Role**: Handle HTTP requests, bind/validate DTOs, call service methods, and return response DTOs.
 - **Rules**:
-  - Use `dto` package for request/response structures. Add `ToDomain()` methods to DTOs to map to domain entities before calling services.
-  - **Automatic Validation**: Use `c.Bind(&req)` to both bind the request and automatically trigger validation.
-  - Map Domain Errors to HTTP errors (`problem.Error` or `validator.ValidationError`).
+  - Put request/response structs in `internal/delivery/http/handler/dto/`.
+  - Add `ToDomain()` on request DTOs that cross into services; never pass HTTP DTOs into services.
+  - Use `c.Bind(&req)` for binding and automatic validation.
+  - Map domain errors to HTTP errors with `pkg/problem` or `pkg/validator`.
   - Wrap unexpected errors using `problem.Wrap(err, problem.ErrInternalServer)`.
   - Avoid business logic; delegate to the Service layer.
+  - Register routes in `internal/delivery/http/routes/routes.go` with `oaswrap` request/response metadata.
 
 ### 2. Service (Business Logic)
 - **Location**: `internal/service/`
@@ -25,7 +27,9 @@ This project follows a structured layering pattern: `Delivery (HTTP) -> Service 
 - **Rules**:
   - Depend on interfaces defined in `internal/domain/`.
   - Accept and return domain entities.
-  - **Strict Boundary**: Return **Domain Errors** (`internal/domain/error.go`). Never import `pkg/problem`, `pkg/validator`, or `internal/model`.
+  - Return domain errors from `internal/domain/error.go` for expected business outcomes.
+  - Do not import `pkg/problem`, `pkg/validator`, `internal/model`, or HTTP delivery packages.
+  - If a service enqueues work, keep the queue payload explicit and still expose domain-level behavior.
 
 ### 3. Repository (Data Access)
 - **Location**: `internal/repository/`
@@ -33,9 +37,9 @@ This project follows a structured layering pattern: `Delivery (HTTP) -> Service 
 - **Rules**:
   - Use `model.New[Entity]FromDomain(domainEntity)` to map Domain -> Model.
   - Use `modelEntity.ToDomain()` to map Model -> Domain.
-- **Rules**:
   - Keep it focused on persistence.
-  - Handle DB-specific errors (e.g., unique constraints) and wrap them in domain errors.
+  - Convert known DB outcomes to domain errors, for example duplicate keys to `domain.ErrEmailAlreadyExists` and missing rows to `domain.ErrResourceNotFound`.
+  - Attach stack traces to unexpected DB failures with `github.com/cockroachdb/errors`.
 
 ### 4. Domain & Model
 - **Domain**: `internal/domain/` contains interfaces and business entities used across layers.
@@ -49,5 +53,13 @@ This project follows a structured layering pattern: `Delivery (HTTP) -> Service 
 4. **Implement Repository**: Create the repository implementation in `internal/repository/`.
 5. **Implement Service**: Create the service implementation in `internal/service/`.
 6. **Implement Handler**: Create the handler and DTOs in `internal/delivery/http/handler/`.
-7. **Wire with FX**: Register the new components in the respective `module.go` files and `routes.go`.
+7. **Wire with FX**: Register constructors in the relevant `module.go` files and expose HTTP routes in `routes.go`.
 8. **Add Tests**: Write unit tests for handler/service and E2E tests for the flow.
+
+## Boundary Checklist
+
+- Handler imports may include `pkg/problem`, `pkg/validator`, and DTO packages.
+- Service imports should stay domain-oriented and must not import transport or persistence models.
+- Repository imports may include `internal/model`, GORM, and domain interfaces/errors.
+- Queue handlers should depend on service/domain abstractions, not HTTP handlers or DTOs.
+- Run `make test` after behavior changes; run `make lint` when imports or public APIs change.

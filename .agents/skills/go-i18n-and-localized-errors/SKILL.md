@@ -1,6 +1,6 @@
 ---
 name: go-i18n-and-localized-errors
-description: ctxi18n translations and localized validation/problem responses. Use when adding translated messages or locale-aware errors.
+description: "ctxi18n locale flow, translation catalogs, localized validation labels, and localized handler errors. Use when adding user-facing messages or locale-aware errors."
 ---
 
 # I18n and Localized Errors
@@ -17,7 +17,7 @@ This project uses `ctxi18n` for request-scoped locale handling and `pkg/validato
 ## Locale Flow
 1. HTTP middleware reads `Accept-Language`.
 2. `ctxi18n.WithLocale` stores the locale on the request context.
-3. Handlers call `i18n.T(ctx, key)` for user-facing strings.
+3. Handlers call `i18n.T(ctx, key)` for localized user-facing strings.
 4. `pkg/validator` uses the same context locale when formatting validation errors.
 
 ## When Adding a New Message
@@ -43,8 +43,11 @@ The existing catalogs include:
 - Prefer translated validation messages for user input problems.
 - Use `problem.ErrBadRequest` or other `pkg/problem` errors for route-level failures that should still be localized.
 - Keep services language-agnostic; localize at the handler boundary.
+- DTO `label` tags are field labels for validation output; keep them clear and stable.
 
 ## Practical Rules
 - Do not hardcode user-facing strings if a translation key already exists.
 - Use the request context for translation lookups, not global state.
 - When a new locale is added, update the middleware fallback and validator support together.
+- Keep English and Indonesian catalogs structurally identical.
+- Add or update handler tests when changing localized error behavior.

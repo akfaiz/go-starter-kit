@@ -1,6 +1,6 @@
 ---
 name: go-testing-patterns
-description: Ginkgo, Testify, and E2E testing patterns for this project. Use when writing unit tests for handlers, services, repositories, or adding new E2E test cases.
+description: "Project test patterns using Ginkgo/Gomega, Testify, gomock, Testcontainers, miniredis, and E2E helpers. Use when writing or updating handler, service, repository, queue, telemetry, or E2E tests."
 ---
 
 # Testing Patterns
@@ -13,7 +13,7 @@ This project uses a mix of **Ginkgo/Gomega** for BDD-style tests and standard **
 Handlers and services usually use Ginkgo for descriptive test suites and `gomock` for dependency mocking.
 
 - **Location**: Next to implementation (`xxx_test.go`).
-- **Mocks**: Located in `test/mocks/`. Run `go generate ./...` to update them if you changed interfaces.
+- **Mocks**: Located in `test/mocks/`. Run `go generate ./...` if domain interfaces changed.
 
 Example (Handler Test):
 ```go
@@ -57,6 +57,11 @@ var _ = Describe("UserRepository", func() {
 })
 ```
 
+### Queue and Infrastructure
+- Queue client/worker tests may use `miniredis` and Testify.
+- Handler tests should cover malformed payloads with `asynq.SkipRetry`, successful calls, and retryable downstream errors.
+- Telemetry tests use in-memory OTel exporters from `tracetest`.
+
 ## E2E Testing
 E2E tests run against a real database and Redis (usually in Docker).
 
@@ -80,3 +85,10 @@ It("registers successfully", func() {
 - **Full coverage merge**: `make coverage-all`
 
 `make test` runs the Ginkgo suite across the repo while skipping generated mocks, migrations, CLI commands, and E2E tests.
+
+## Practical Rules
+
+- Use table-driven tests for compact service/repository cases when it improves clarity.
+- Assert domain errors in service and repository tests; assert mapped problem/validation responses in handler tests.
+- Keep tests colocated with implementation unless they are full-stack E2E tests.
+- Add E2E coverage when API contracts, auth flows, or persistence behavior change end to end.

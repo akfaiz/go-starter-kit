@@ -1,6 +1,6 @@
 ---
 name: go-errors-validation
-description: Using pkg/problem for standardized RFC 7807 errors and pkg/validator for localized input validation. Use when handling errors in handlers or services, and when validating request DTOs.
+description: "Project error and validation rules: domain errors in services, RFC 7807 problem responses in delivery, localized validator errors for DTOs. Use when handling errors, mapping domain errors, or validating request DTOs."
 ---
 
 # Errors and Validation
@@ -8,7 +8,7 @@ description: Using pkg/problem for standardized RFC 7807 errors and pkg/validato
 This project uses **RFC 7807 (Problem Details)** for error responses and `go-playground/validator` for localized input validation.
 
 ## Standardized Errors (`pkg/problem`)
-Use `pkg/problem` in handlers and transport-layer code to shape HTTP responses.
+Use `pkg/problem` only in handlers, middleware, and transport-layer code to shape HTTP responses.
 
 ### Common Error Types
 - `problem.ErrBadRequest`: 400 Bad Request
@@ -16,6 +16,7 @@ Use `pkg/problem` in handlers and transport-layer code to shape HTTP responses.
 - `problem.ErrForbidden`: 403 Forbidden
 - `problem.ErrNotFound`: 404 Not Found
 - `problem.ErrConflict`: 409 Conflict
+- `problem.ErrTooManyRequests`: 429 Too Many Requests
 - `problem.ErrUnprocessableEntity`: 422 Unprocessable Entity
 - `problem.ErrInternalServer`: 500 Internal Server Error
 
@@ -23,14 +24,13 @@ Use `pkg/problem` in handlers and transport-layer code to shape HTTP responses.
 The project uses a custom binder that automatically triggers validation after binding. This ensures all request DTOs are validated with context-aware localization before they reach the handler logic.
 
 ### Handler Implementation
-Simply use `c.Bind` to handle both binding and validation. If validation fails, the global error handler will catch the error and return a standardized RFC 7807 response.
+Use `c.Bind` to handle both binding and validation. If validation fails, the global error handler converts the validator error into a standardized RFC 7807 response.
 
 ```go
 func (h *MyHandler) Create(c *echo.Context) error {
     var req dto.CreateRequest
-    // Bind automatically triggers validation
     if err := c.Bind(&req); err != nil {
-        return err // Returns *validator.ValidationError or Bind error
+        return err
     }
     // ...
 }
@@ -50,13 +50,15 @@ type CreateUserRequest struct {
 ```
 
 ## Domain Errors in Services
-**Crucial Rule:** Services must *never* return HTTP-specific errors, `pkg/problem`, or `pkg/validator` errors. Services must return **Domain Errors** defined in `internal/domain/error.go` (e.g., `domain.ErrUserNotFound`).
+Services must not return HTTP-specific errors, `pkg/problem`, or `pkg/validator` errors. Services return domain errors from `internal/domain/error.go`, for example `domain.ErrUserNotFound`, `domain.ErrInvalidToken`, or `domain.ErrEmailAlreadyExists`.
+
+Repositories also return domain errors for expected persistence outcomes, and attach stack traces to unexpected DB failures.
 
 ## Stack Trace Capture
 Capture stack traces at the **first unexpected error origin** (repository/infra/hash/service internals), not at the HTTP mapping layer.
 
 - Use `github.com/cockroachdb/errors` (`errors.WithStack` / `errors.Wrap`) when returning unexpected low-level errors.
-- Keep expected business outcomes as domain errors (for example `domain.ErrResourceNotFound`, `domain.ErrInvalidToken`) without stack wrapping.
+- Keep expected business outcomes as domain errors without stack wrapping.
 - `problem.Wrap(err, problem.ErrInternalServer)` should map errors to RFC 7807 response shape, not become the primary stack-capture point.
 
 ## Mapping Errors in Handlers
@@ -67,11 +69,9 @@ func (h *MyHandler) Create(c *echo.Context) error {
     // ...
     err := h.service.Create(ctx, req.ToDomain())
     if err != nil {
-        // 1. Map known domain errors to HTTP/Validation errors
         if errors.Is(err, domain.ErrEmailAlreadyExists) {
             return validator.NewError("email", "Email already registered")
         }
-        // 2. Wrap unknown/unexpected errors for HTTP response mapping
         return problem.Wrap(err, problem.ErrInternalServer)
     }
     // ...
@@ -89,3 +89,10 @@ Example mappings used in the codebase:
 - `domain.ErrEmailAlreadyExists` -> `validator.NewError("email", "Email already registered")`
 - `domain.ErrInvalidToken` -> `problem.ErrUnauthorized(...)` or `problem.ErrBadRequest(...)` depending on the route
 - `domain.ErrUserNotFound` -> localized validation error for the email field in forgot-password flows
+
+## Review Checklist
+
+- DTOs use `validate` tags and `label` tags where field names appear in validation messages.
+- Handlers use `errors.Is` for domain error mapping.
+- User-facing strings are localized with `i18n.T(ctx, key)` when a catalog key exists.
+- Service tests assert domain errors; handler tests assert mapped HTTP/validation behavior.

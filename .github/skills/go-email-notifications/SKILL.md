@@ -1,6 +1,6 @@
 ---
 name: go-email-notifications
-description: Email composition with go-mailgen and SMTP delivery for notifications. Use when creating new email notifications, customizing templates, or sending emails.
+description: "go-mailgen notification composition, queue payloads, domain.Mail transport, and SMTP delivery. Use when creating email notifications, changing templates, or sending mail through the queue."
 ---
 
 # Email and Notifications
@@ -59,7 +59,7 @@ Call `Build()`, then map the resulting message into `payload.MailPayload`.
 builder := s.buildEmailForgotPasswordOTP(user, otp)
 message, err := builder.Build()
 if err != nil {
-    return err
+    return cerrors.WithStack(err)
 }
 
 payload, err := json.Marshal(payload.MailPayload{
@@ -71,7 +71,7 @@ payload, err := json.Marshal(payload.MailPayload{
     HTML:    message.HTML(),
 })
 if err != nil {
-    return err
+    return cerrors.WithStack(err)
 }
 ```
 
@@ -80,6 +80,9 @@ Use `queue.TypeMailSend` with `queue.NewTask`.
 
 ```go
 _, err := s.queue.EnqueueContext(ctx, queue.NewTask(ctx, queue.TypeMailSend, payload))
+if err != nil {
+    return cerrors.WithStack(err)
+}
 ```
 
 ## Queue Payload
@@ -132,3 +135,5 @@ Use the existing `mailgen.Builder` methods shown in the auth service pattern:
 - Keep the transport boundary on `domain.Mail`.
 - Preserve both plain text and HTML bodies when enqueueing mail.
 - Use `payload.MailPayload` when crossing the queue boundary.
+- Keep queue handlers thin; SMTP-specific behavior belongs in `internal/infra/smtp_client.go`.
+- Cover new notifications with service tests for payload enqueueing and worker/SMTP tests where behavior changes.

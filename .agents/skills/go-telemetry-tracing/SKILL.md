@@ -1,6 +1,6 @@
 ---
 name: go-telemetry-tracing
-description: OpenTelemetry, Jaeger, and tracing integration for observability. Use when adding tracing to new services, database queries, or external calls.
+description: "OpenTelemetry setup, custom spans, trace propagation, span error recording, and Jaeger/OTLP configuration. Use when adding tracing to services, repositories, queues, Redis, database queries, or external calls."
 ---
 
 # Telemetry and Tracing
@@ -15,6 +15,7 @@ This project uses **OpenTelemetry (OTel)** for distributed tracing. The default 
   - `GORM`: Traces database queries.
   - `Redis`: Traces cache operations via `redisotel`.
   - `Asynq`: Traces queue enqueueing and worker processing.
+- **Errors**: `internal/telemetry/error.go` records exception type, message, and stack trace when available.
 
 ## Adding Custom Tracing
 To add a custom span in a service or repository:
@@ -24,11 +25,21 @@ func (s *service) ComplexOperation(ctx context.Context) error {
     ctx, span := telemetry.StartSpan(ctx, s.tracer)
     defer span.End()
 
-    // span.SetAttributes(...)
-    // ...
+    if err := s.repo.Do(ctx); err != nil {
+        telemetry.RecordSpanError(span, err)
+        return err
+    }
     return nil
 }
 ```
+
+Existing services use package-level tracers such as `otel.Tracer("auth-service")` and `otel.Tracer("user-service")`.
+
+## Error Recording
+
+- Attach stack traces at the unexpected error origin with `github.com/cockroachdb/errors`.
+- Call `telemetry.RecordSpanError(span, err)` before returning errors from custom spans when useful.
+- Do not stack-wrap expected domain errors such as invalid tokens, duplicate email, or not found.
 
 ## Viewing Traces
 When running locally with Docker Compose, Jaeger UI is usually available at `http://localhost:16686` if the stack includes it.
@@ -43,3 +54,9 @@ OTel configuration (enabled flag, exporter, endpoint, insecure mode, sampling ra
 - `OTEL_EXPORTER_OTLP_INSECURE=true`
 - `OTEL_TRACES_SAMPLER_RATIO=1.0`
 - `OTEL_EXPORT_TIMEOUT=5s`
+
+## Verification
+
+- Use `tracetest.InMemoryExporter` for span assertions.
+- For queue propagation, assert producer/consumer span kinds and propagated trace context.
+- Run `make test` after telemetry or error-recording changes.

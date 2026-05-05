@@ -1,6 +1,6 @@
 ---
 name: go-queue-processing
-description: Asynq task queues, payloads, workers, and tracing. Use when enqueueing jobs, adding handlers, or changing background processing.
+description: "Asynq queue client, worker modules, payload DTOs, task registration, retries, and trace propagation. Use when enqueueing jobs, adding task handlers, or changing background processing."
 ---
 
 # Queue Processing
@@ -11,6 +11,7 @@ This project uses `github.com/hibiken/asynq` for background jobs with Redis-back
 - `internal/delivery/queue/client.go`: enqueue tasks from application code.
 - `internal/delivery/queue/task.go`: create tasks with injected trace headers.
 - `internal/delivery/queue/server/server.go`: run the worker server.
+- `internal/delivery/queue/module.go`: FX modules for queue client and workers.
 - `internal/delivery/queue/middleware/`: worker logging and tracing middleware.
 - `internal/delivery/queue/handler/`: task handlers.
 - `internal/delivery/queue/handler/payload/`: JSON payloads shared between producers and workers.
@@ -21,6 +22,7 @@ This project uses `github.com/hibiken/asynq` for background jobs with Redis-back
 3. Implement a handler in `internal/delivery/queue/handler/`.
 4. Register the handler in `internal/delivery/queue/module.go`.
 5. Enqueue the task with `queue.NewTask(ctx, taskType, payload)` and `queue.Client.EnqueueContext`.
+6. Add handler tests for decode failure, successful processing, and retryable dependency failure.
 
 ## Existing Pattern
 The mail flow is the current reference:
@@ -33,6 +35,7 @@ The mail flow is the current reference:
 - Treat malformed JSON as non-retryable. Return `asynq.SkipRetry` for decode failures.
 - Return real errors for transient failures so the worker can retry them.
 - Keep handlers thin: decode payload, log minimal task context, call the domain interface.
+- Do not import HTTP handlers or HTTP DTOs from queue handlers.
 
 ## Tracing and Logging
 - The client and worker both use OTel spans.
@@ -43,3 +46,5 @@ The mail flow is the current reference:
 - Prefer explicit payload structs over generic `map[string]any`.
 - Keep task names stable because they are routing keys in the worker mux.
 - Preserve request context when enqueueing so trace headers are propagated.
+- Use `ClientModule` for producers and `WorkerModule` for worker processes.
+- Keep payload JSON backward-compatible if queued tasks may already exist in Redis.
