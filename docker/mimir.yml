@@ -1,0 +1,48 @@
+multitenancy_enabled: false
+
+target: all
+
+server:
+  http_listen_port: 9009
+  log_level: warn
+
+common:
+  storage:
+    backend: filesystem
+    filesystem:
+      dir: /data/blocks
+
+blocks_storage:
+  backend: filesystem
+  filesystem:
+    dir: /data/tsdb
+  tsdb:
+    dir: /data/ingester
+
+compactor:
+  data_dir: /data/compactor
+
+ruler:
+  rule_path: /data/ruler
+  alertmanager_url: http://localhost:9009/alertmanager
+  ring:
+    kvstore:
+      store: inmemory
+
+alertmanager:
+  data_dir: /data/alertmanager
+
+ingester:
+  ring:
+    kvstore:
+      store: inmemory
+    replication_factor: 1
+
+distributor:
+  ring:
+    kvstore:
+      store: inmemory
+
+store_gateway:
+  sharding_ring:
+    replication_factor: 1

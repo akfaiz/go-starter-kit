@@ -11,6 +11,7 @@ type Config struct {
 	App       App
 	Auth      Auth
 	Database  Database
+	Hash      Hash
 	Mail      Mail
 	Queue     Queue
 	Redis     Redis
@@ -41,6 +42,7 @@ func loadConfig() Config {
 		App:       loadAppConfig(),
 		Auth:      loadAuthConfig(),
 		Database:  loadDatabaseConfig(),
+		Hash:      loadHashConfig(),
 		Mail:      loadMailConfig(),
 		Queue:     loadQueueConfig(),
 		Redis:     loadRedisConfig(),

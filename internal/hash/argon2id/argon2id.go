@@ -8,6 +8,7 @@ import (
 	"math"
 	"strings"
 
+	"github.com/akfaiz/go-starter-kit/internal/config"
 	"github.com/akfaiz/go-starter-kit/internal/domain"
 	"github.com/cockroachdb/errors"
 	"golang.org/x/crypto/argon2"
@@ -19,17 +20,15 @@ type argon2idHasher struct {
 	parallelism uint8
 	saltLength  uint32
 	keyLength   uint32
-	format      string
 }
 
-func NewHasher() domain.PasswordHasher {
+func NewHasher(cfg config.Config) domain.PasswordHasher {
 	return &argon2idHasher{
-		memory:      64 * 1024, // 64 MB
-		iteration:   3,         // 3 iterations
-		parallelism: 1,         // 1 parallel thread
-		saltLength:  16,        // 16 bytes salt
-		keyLength:   32,        // 32 bytes key length
-		format:      "$argon2id$v=%d$m=%d,t=%d,p=%d$%s$%s",
+		memory:      cfg.Hash.Argon2Memory,
+		iteration:   cfg.Hash.Argon2Iteration,
+		parallelism: cfg.Hash.Argon2Parallelism,
+		saltLength:  16,
+		keyLength:   32,
 	}
 }
 

@@ -21,4 +21,5 @@ WORKDIR /app
 COPY --from=builder /app/go-starter-kit /app/go-starter-kit
 EXPOSE 8080
 USER app
-ENTRYPOINT ["/app/go-starter-kit", "serve"]
+ENTRYPOINT ["/app/go-starter-kit"]
+CMD ["serve"]

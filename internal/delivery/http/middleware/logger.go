@@ -19,7 +19,7 @@ func Logger(logger *slog.Logger) echo.MiddlewareFunc {
 		LogRequestID: true,
 		HandleError:  true,
 		Skipper: func(c *echo.Context) bool {
-			skipPrefixes := []string{"/assets", "/docs", "/favicon.ico", "/env.js"}
+			skipPrefixes := []string{"/assets", "/docs", "/favicon.ico", "/metrics"}
 			for _, prefix := range skipPrefixes {
 				if len(c.Request().URL.Path) >= len(prefix) && c.Request().URL.Path[:len(prefix)] == prefix {
 					return true

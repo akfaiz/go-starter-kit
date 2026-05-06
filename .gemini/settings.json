@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "local-grafana": {
+      "url": "http://localhost:8000/sse",
+      "trust": true
+    }
+  }
+}
