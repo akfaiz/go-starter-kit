@@ -39,7 +39,7 @@ make run
 | API | `http://localhost:8080` |
 | OpenAPI docs | `http://localhost:8080/docs` |
 | Grafana | `http://localhost:3000` (admin/admin) |
-| Jaeger UI | `http://localhost:16686` |
+| Trace UI (Grafana Explore / Tempo) | `http://localhost:3000` (admin/admin) |
 
 ## Observability
 

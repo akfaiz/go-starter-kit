@@ -35,8 +35,8 @@
 - `make build`: compile binary to `bin/go-starter-kit`.
 - `make docker-build` / `make docker-run`: build and run the container image.
 - `docker compose up --build`: start the local stack using containers.
-- For local non-container development, run `docker compose up -d db redis jaeger`, then `make migrate-up`, then `make run`.
-- Jaeger UI for trace inspection: `http://localhost:16686`.
+- For local non-container development, run `docker compose up -d db redis otel-collector tempo mimir loki grafana`, then `make migrate-up`, then `make run`.
+- Trace inspection is available in Grafana Explore (Tempo datasource): `http://localhost:3000`.
 - Live reload is supported via `.air.toml` (run `air` if installed).
 
 ## Go Module
