@@ -39,6 +39,7 @@ func Register(rc RouteConfig) {
 			fmt.Sprintf("http://localhost:%d", rc.Config.Server.Port),
 			option.ServerDescription("Local server"),
 		),
+		option.WithScalar(),
 	)
 
 	v1 := r.Group("/api/v1")

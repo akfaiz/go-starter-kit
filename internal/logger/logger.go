@@ -2,6 +2,7 @@ package logger
 
 import (
 	"context"
+	"io"
 	"log/slog"
 	"os"
 	"path/filepath"
@@ -12,38 +13,125 @@ import (
 	"github.com/akfaiz/go-starter-kit/internal/telemetry"
 	cerrors "github.com/cockroachdb/errors"
 	"github.com/getsentry/sentry-go"
+	slogmulti "github.com/samber/slog-multi"
+	"go.opentelemetry.io/contrib/bridges/otelslog"
+	sdklog "go.opentelemetry.io/otel/sdk/log"
 	"go.opentelemetry.io/otel/trace"
 )
 
-func Init(cfg config.App) {
-	level := slog.LevelInfo
-	switch strings.ToLower(cfg.LogLevel) {
-	case "debug":
-		level = slog.LevelDebug
-	case "info":
-		level = slog.LevelInfo
-	case "warn", "warning":
-		level = slog.LevelWarn
-	case "error":
-		level = slog.LevelError
-	case "disabled", "off":
-		level = slog.Level(100) // disable all logs
-	}
-	var handler slog.Handler
-	handlerOpts := &slog.HandlerOptions{
-		Level: level,
-	}
-	if strings.ToLower(cfg.LogFormat) == "json" {
-		handler = slog.NewJSONHandler(os.Stdout, handlerOpts)
-	} else {
-		handler = slog.NewTextHandler(os.Stdout, handlerOpts)
-	}
-	logger := slog.New(&customHandler{handler})
+const (
+	defaultServiceName  = "go-starter-kit"
+	disabledLogLevel    = slog.Level(100)
+	maxErrorStackFrames = 5
+)
+
+func Init(cfg config.App, lp *sdklog.LoggerProvider) {
+	threshold := resolveLogLevel(cfg.LogLevel)
+
+	otelHandler := otelslog.NewHandler(defaultServiceName, otelslog.WithLoggerProvider(lp))
+	stdoutHandler := newConsoleHandler(cfg.LogFormat, os.Stdout)
+
+	logger := slog.New(
+		slogmulti.Pipe(
+			newLevelFilterMiddleware(threshold),
+			newEnrichAndFormatMiddleware(),
+		).Handler(slogmulti.Fanout(stdoutHandler, otelHandler)),
+	)
 	slog.SetDefault(logger)
 }
 
-type customHandler struct {
-	slog.Handler
+func resolveLogLevel(raw string) slog.Level {
+	switch strings.ToLower(raw) {
+	case "debug":
+		return slog.LevelDebug
+	case "warn", "warning":
+		return slog.LevelWarn
+	case "error":
+		return slog.LevelError
+	case "disabled", "off":
+		return disabledLogLevel
+	default:
+		return slog.LevelInfo
+	}
+}
+
+func newLevelFilterMiddleware(threshold slog.Level) slogmulti.Middleware {
+	return slogmulti.NewEnabledInlineMiddleware(
+		func(ctx context.Context, level slog.Level, next func(context.Context, slog.Level) bool) bool {
+			if threshold == disabledLogLevel {
+				return false
+			}
+			if level < threshold {
+				return false
+			}
+			return next(ctx, level)
+		},
+	)
+}
+
+func newEnrichAndFormatMiddleware() slogmulti.Middleware {
+	return slogmulti.NewHandleInlineMiddleware(
+		func(ctx context.Context, record slog.Record, next func(context.Context, slog.Record) error) error {
+			enriched := enrichRecord(ctx, record.Clone())
+			return next(ctx, enriched)
+		},
+	)
+}
+
+func enrichRecord(ctx context.Context, record slog.Record) slog.Record {
+	appendTraceCorrelation(ctx, &record)
+	appendErrorMetadata(&record)
+	return record
+}
+
+func appendTraceCorrelation(ctx context.Context, record *slog.Record) {
+	span := trace.SpanFromContext(ctx)
+	if !span.IsRecording() || !span.SpanContext().IsValid() {
+		return
+	}
+
+	spanContext := span.SpanContext()
+	record.AddAttrs(
+		slog.String("span_id", spanContext.SpanID().String()),
+		slog.String("trace_id", spanContext.TraceID().String()),
+	)
+}
+
+func appendErrorMetadata(record *slog.Record) {
+	var extra []slog.Attr
+	record.Attrs(func(attr slog.Attr) bool {
+		if attr.Key != "error" {
+			return true
+		}
+
+		err := errorFromValue(attr.Value)
+		if err == nil {
+			return true
+		}
+
+		extra = append(extra, slog.String("error_type", telemetry.ErrorType(err)))
+
+		stack := cerrors.GetReportableStackTrace(err)
+		if stack != nil {
+			extra = append(
+				extra,
+				slog.Any("error_stack", compactFrames(limitFrames(stack.Frames, maxErrorStackFrames))),
+			)
+		}
+		return true
+	})
+
+	if len(extra) > 0 {
+		record.AddAttrs(extra...)
+	}
+}
+
+func newConsoleHandler(format string, writer io.Writer) slog.Handler {
+	opts := &slog.HandlerOptions{}
+	if strings.EqualFold(format, "text") {
+		return slog.NewTextHandler(writer, opts)
+	}
+	return slog.NewJSONHandler(writer, opts)
 }
 
 type loggerStackFrame struct {
@@ -51,40 +139,6 @@ type loggerStackFrame struct {
 	Module   string `json:"module,omitempty"`
 	File     string `json:"file,omitempty"`
 	Line     int    `json:"line,omitempty"`
-}
-
-func (h *customHandler) Handle(ctx context.Context, record slog.Record) error {
-	span := trace.SpanFromContext(ctx)
-	if span.IsRecording() && span.SpanContext().IsValid() {
-		spanContext := span.SpanContext()
-		record.Add(slog.String("span_id", spanContext.SpanID().String()))
-		record.Add(slog.String("trace_id", spanContext.TraceID().String()))
-	}
-	record.Attrs(func(attr slog.Attr) bool {
-		if attr.Key != "error" {
-			return true
-		}
-		err := errorFromValue(attr.Value)
-		if err == nil {
-			return true
-		}
-		record.Add(slog.String("error_type", telemetry.ErrorType(err)))
-
-		stack := cerrors.GetReportableStackTrace(err)
-		if stack == nil {
-			return true
-		}
-
-		frames := slices.Clone(stack.Frames)
-		slices.Reverse(frames)
-		if len(frames) > 5 {
-			frames = frames[:5]
-		}
-		record.Add(slog.Any("error_stack", compactFrames(frames)))
-		return false
-	})
-
-	return h.Handler.Handle(ctx, record)
 }
 
 func errorFromValue(value slog.Value) error {
@@ -112,6 +166,19 @@ func compactFrames(frames []sentry.Frame) []loggerStackFrame {
 		})
 	}
 	return out
+}
+
+func limitFrames(frames []sentry.Frame, maxFrames int) []sentry.Frame {
+	if len(frames) == 0 {
+		return nil
+	}
+
+	normalized := slices.Clone(frames)
+	slices.Reverse(normalized)
+	if len(normalized) > maxFrames {
+		normalized = normalized[:maxFrames]
+	}
+	return normalized
 }
 
 func firstNonEmpty(values ...string) string {

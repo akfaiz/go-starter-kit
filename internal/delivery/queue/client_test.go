@@ -11,6 +11,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/sdk/trace"
 	"go.opentelemetry.io/otel/sdk/trace/tracetest"
 	semconv "go.opentelemetry.io/otel/semconv/v1.26.0"
@@ -75,4 +77,48 @@ func TestClient_EnqueueContext(t *testing.T) {
 	assert.Contains(t, spans[0].Attributes, semconv.MessagingSystemKey.String("asynq"))
 	assert.Contains(t, spans[0].Attributes, semconv.MessagingDestinationNameKey.String(queue.TypeMailSend))
 	assert.Contains(t, spans[0].Attributes, semconv.MessagingOperationTypePublish)
+}
+
+func TestClient_EnqueueContext_RecordsSpanError(t *testing.T) {
+	prevTracerProvider := otel.GetTracerProvider()
+	exporter := tracetest.NewInMemoryExporter()
+	tp := trace.NewTracerProvider(trace.WithSyncer(exporter))
+	otel.SetTracerProvider(tp)
+	t.Cleanup(func() {
+		_ = tp.Shutdown(context.Background())
+		otel.SetTracerProvider(prevTracerProvider)
+	})
+
+	mr, err := miniredis.Run()
+	require.NoError(t, err)
+
+	client := queue.NewClient(config.Redis{Addr: mr.Addr()})
+	t.Cleanup(func() {
+		_ = client.Close()
+	})
+	mr.Close()
+
+	task := queue.NewTask(context.Background(), queue.TypeMailSend, []byte(`{"to":["test@example.com"]}`))
+
+	info, err := client.EnqueueContext(context.Background(), task)
+	require.Error(t, err)
+	assert.Nil(t, info)
+
+	spans := exporter.GetSpans()
+	require.Len(t, spans, 1)
+	assert.Equal(t, codes.Error, spans[0].Status.Code)
+	assert.Contains(t, spans[0].Attributes, semconv.ExceptionTypeKey.String("*errors.Error"))
+	assert.NotEmpty(t, findAttr(t, spans[0].Attributes, semconv.ExceptionMessageKey).Value.AsString())
+}
+
+func findAttr(t *testing.T, attrs []attribute.KeyValue, key attribute.Key) attribute.KeyValue {
+	t.Helper()
+
+	for _, attr := range attrs {
+		if attr.Key == key {
+			return attr
+		}
+	}
+	require.Failf(t, "attribute not found", "key=%s", key)
+	return attribute.KeyValue{}
 }

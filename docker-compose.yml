@@ -1,3 +1,54 @@
+x-app-environment: &app-environment
+  APP_NAME: ${APP_NAME}
+  APP_DEBUG: ${APP_DEBUG}
+  SERVER_PORT: ${SERVER_PORT}
+  SERVER_CORS_ORIGINS: ${SERVER_CORS_ORIGINS}
+  SERVER_READ_HEADER_TIMEOUT: ${SERVER_READ_HEADER_TIMEOUT}
+  SERVER_RATE_LIMIT_ENABLED: ${SERVER_RATE_LIMIT_ENABLED}
+  SERVER_RATE_LIMIT_REQUESTS: ${SERVER_RATE_LIMIT_REQUESTS}
+  SERVER_RATE_LIMIT_BURST: ${SERVER_RATE_LIMIT_BURST}
+  FRONTEND_BASE_URL: ${FRONTEND_BASE_URL}
+  QUEUE_CONCURRENCY: ${QUEUE_CONCURRENCY}
+  QUEUE_STRICT: ${QUEUE_STRICT}
+  QUEUE_METRICS_ENABLED: ${QUEUE_METRICS_ENABLED}
+  LOG_LEVEL: ${LOG_LEVEL}
+  LOG_FORMAT: ${LOG_FORMAT}
+  OTEL_ENABLED: ${OTEL_ENABLED}
+  OTEL_SERVICE_NAME: ${OTEL_SERVICE_NAME}
+  OTEL_EXPORTER: ${OTEL_EXPORTER}
+  OTEL_EXPORTER_OTLP_ENDPOINT: otel-collector:4317
+  OTEL_EXPORTER_OTLP_INSECURE: ${OTEL_EXPORTER_OTLP_INSECURE}
+  OTEL_TRACES_SAMPLER_RATIO: ${OTEL_TRACES_SAMPLER_RATIO}
+  OTEL_EXPORT_TIMEOUT: ${OTEL_EXPORT_TIMEOUT}
+  REDIS_ADDR: redis:6379
+  REDIS_PASSWORD: ${REDIS_PASSWORD}
+  REDIS_DB: ${REDIS_DB}
+  REDIS_PREFIX: ${REDIS_PREFIX}
+  DB_HOST: db
+  DB_PORT: ${DB_PORT}
+  DB_USER: ${DB_USER}
+  DB_PASSWORD: ${DB_PASSWORD}
+  DB_NAME: ${DB_NAME}
+  DB_SSLMODE: ${DB_SSLMODE}
+  DB_MAX_OPEN_CONNS: ${DB_MAX_OPEN_CONNS}
+  DB_MAX_IDLE_CONNS: ${DB_MAX_IDLE_CONNS}
+  HASH_DRIVER: ${HASH_DRIVER}
+  HASH_ARGON2_MEMORY: ${HASH_ARGON2_MEMORY}
+  HASH_ARGON2_ITERATION: ${HASH_ARGON2_ITERATION}
+  HASH_ARGON2_PARALLELISM: ${HASH_ARGON2_PARALLELISM}
+  HASH_BCRYPT_COST: ${HASH_BCRYPT_COST}
+  JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET}
+  JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET}
+  JWT_ACCESS_EXPIRES_IN: ${JWT_ACCESS_EXPIRES_IN}
+  JWT_REFRESH_EXPIRES_IN: ${JWT_REFRESH_EXPIRES_IN}
+  MAIL_HOST: ${MAIL_HOST}
+  MAIL_DRIVER: ${MAIL_DRIVER}
+  MAIL_PORT: ${MAIL_PORT}
+  MAIL_USERNAME: ${MAIL_USERNAME}
+  MAIL_PASSWORD: ${MAIL_PASSWORD}
+  MAIL_FROM_ADDRESS: ${MAIL_FROM_ADDRESS}
+  MAIL_FROM_NAME: ${MAIL_FROM_NAME}
+
 services:
   app:
     build:
@@ -6,44 +57,30 @@ services:
     ports:
       - "8080:8080"
     environment:
-      APP_NAME: ${APP_NAME}
-      APP_DEBUG: ${APP_DEBUG}
-      SERVER_PORT: ${SERVER_PORT}
-      FRONTEND_BASE_URL: ${FRONTEND_BASE_URL}
-      LOG_LEVEL: ${LOG_LEVEL}
-      LOG_FORMAT: ${LOG_FORMAT}
-      OTEL_ENABLED: ${OTEL_ENABLED}
-      OTEL_SERVICE_NAME: ${OTEL_SERVICE_NAME}
-      OTEL_EXPORTER: ${OTEL_EXPORTER}
-      OTEL_EXPORTER_OTLP_ENDPOINT: jaeger:4317
-      OTEL_EXPORTER_OTLP_INSECURE: ${OTEL_EXPORTER_OTLP_INSECURE}
-      OTEL_TRACES_SAMPLER_RATIO: ${OTEL_TRACES_SAMPLER_RATIO}
-      OTEL_EXPORT_TIMEOUT: ${OTEL_EXPORT_TIMEOUT}
-      REDIS_ADDR: redis:6379
-      REDIS_PASSWORD: ${REDIS_PASSWORD}
-      REDIS_DB: ${REDIS_DB}
-      REDIS_PREFIX: ${REDIS_PREFIX}
-      DB_HOST: db
-      DB_PORT: ${DB_PORT}
-      DB_USER: ${DB_USER}
-      DB_PASSWORD: ${DB_PASSWORD}
-      DB_NAME: ${DB_NAME}
-      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET}
-      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET}
-      JWT_ACCESS_EXPIRES_IN: ${JWT_ACCESS_EXPIRES_IN}
-      JWT_REFRESH_EXPIRES_IN: ${JWT_REFRESH_EXPIRES_IN}
-      MAIL_HOST: ${MAIL_HOST}
-      MAIL_PORT: ${MAIL_PORT}
-      MAIL_USERNAME: ${MAIL_USERNAME}
-      MAIL_PASSWORD: ${MAIL_PASSWORD}
-      MAIL_FROM_ADDRESS: ${MAIL_FROM_ADDRESS}
-      MAIL_FROM_NAME: ${MAIL_FROM_NAME}
+      <<: *app-environment
     depends_on:
       db:
         condition: service_healthy
       redis:
         condition: service_healthy
-      jaeger:
+      otel-collector:
+        condition: service_started
+    restart: unless-stopped
+
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: ["queue"]
+    environment:
+      <<: *app-environment
+      OTEL_SERVICE_NAME: ${OTEL_SERVICE_NAME}-worker
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      otel-collector:
         condition: service_started
     restart: unless-stopped
 
@@ -77,17 +114,73 @@ services:
       start_period: 3s
     restart: unless-stopped
 
-  jaeger:
-    image: jaegertracing/all-in-one:1.64.0
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:latest
+    command: ["--config=/etc/otel-collector.yml"]
+    volumes:
+      - ./docker/otel-collector.yml:/etc/otel-collector.yml
     ports:
-      - "16686:16686"
       - "4317:4317"
+      - "4318:4318"
+    depends_on:
+      - tempo
+      - mimir
+    restart: unless-stopped
+
+  mimir:
+    image: grafana/mimir:latest
+    command: ["-config.file=/etc/mimir.yml"]
+    ports:
+      - "9009:9009"
+    volumes:
+      - ./docker/mimir.yml:/etc/mimir.yml
+      - mimir_data:/data
+    restart: unless-stopped
+
+  tempo:
+    image: grafana/tempo:2.7.0
+    command: [ "-config.file=/etc/tempo.yaml" ]
+    volumes:
+      - ./docker/tempo.yml:/etc/tempo.yaml
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:11.4.0
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./docker/grafana/provisioning:/etc/grafana/provisioning
     environment:
-      COLLECTOR_OTLP_ENABLED: "true"
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
+    depends_on:
+      - mimir
+      - tempo
+      - loki
+    restart: unless-stopped
+
+  loki:
+    image: grafana/loki:3.3.2
+    command: -config.file=/etc/loki/local-config.yaml
+    volumes:
+      - ./docker/loki-config.yml:/etc/loki/local-config.yaml
+    restart: unless-stopped
+
+  mcp-grafana:
+    image: grafana/mcp-grafana:latest
+    ports:
+      - "8000:8000"
+    environment:
+      - GRAFANA_URL=http://grafana:3000
+      - GRAFANA_TOKEN=${GRAFANA_SERVICE_ACCOUNT_TOKEN}
+    depends_on:
+      - grafana
     restart: unless-stopped
 
 volumes:
   db_data:
+  mimir_data:
 
 networks:
   default:

@@ -9,6 +9,7 @@ import (
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
+	"gorm.io/plugin/opentelemetry/metrics"
 	"gorm.io/plugin/opentelemetry/tracing"
 )
 
@@ -38,9 +39,14 @@ func NewDatabase(cfg config.Config) (*gorm.DB, error) {
 		return nil, cerrors.WithStack(err)
 	}
 
+	sqlDB.SetMaxOpenConns(cfg.Database.MaxOpenConns)
+	sqlDB.SetMaxIdleConns(cfg.Database.MaxIdleConns)
+
 	if err := db.Use(tracing.NewPlugin()); err != nil {
 		return nil, cerrors.WithStack(err)
 	}
+
+	metrics.ReportDBStatsMetrics(sqlDB)
 
 	return db, nil
 }

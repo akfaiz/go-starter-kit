@@ -5,13 +5,15 @@ import (
 )
 
 type Queue struct {
-	Concurrency int
-	Strict      bool
+	Concurrency    int
+	Strict         bool
+	MetricsEnabled bool
 }
 
 func loadQueueConfig() Queue {
 	return Queue{
-		Concurrency: env.GetInt("QUEUE_CONCURRENCY", 10),
-		Strict:      env.GetBool("QUEUE_STRICT", false),
+		Concurrency:    env.GetInt("QUEUE_CONCURRENCY", 10),
+		Strict:         env.GetBool("QUEUE_STRICT", false),
+		MetricsEnabled: env.GetBool("QUEUE_METRICS_ENABLED", true),
 	}
 }

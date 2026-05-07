@@ -5,7 +5,7 @@ description: "OpenTelemetry setup, custom spans, trace propagation, span error r
 
 # Telemetry and Tracing
 
-This project uses **OpenTelemetry (OTel)** for distributed tracing. The default exporter is OTLP, and the default endpoint points at `jaeger:4317` in local compose setups.
+This project uses **OpenTelemetry (OTel)** for distributed tracing. The default exporter is OTLP, and the default endpoint points at `otel-collector:4317` in local compose setups.
 
 ## Tracing Architecture
 - **Location**: `internal/telemetry/`
@@ -42,7 +42,7 @@ Existing services use package-level tracers such as `otel.Tracer("auth-service")
 - Do not stack-wrap expected domain errors such as invalid tokens, duplicate email, or not found.
 
 ## Viewing Traces
-When running locally with Docker Compose, Jaeger UI is usually available at `http://localhost:16686` if the stack includes it.
+When running locally with Docker Compose, traces are available in Grafana Explore (Tempo datasource) at `http://localhost:3000`.
 
 ## Configuration
 OTel configuration (enabled flag, exporter, endpoint, insecure mode, sampling ratio, export timeout) is managed in `internal/config/telemetry.go` and initialized in `internal/telemetry/tracing.go`.
@@ -50,7 +50,7 @@ OTel configuration (enabled flag, exporter, endpoint, insecure mode, sampling ra
 ## Current Defaults
 - `OTEL_ENABLED=true`
 - `OTEL_EXPORTER=otlp`
-- `OTEL_EXPORTER_OTLP_ENDPOINT=jaeger:4317`
+- `OTEL_EXPORTER_OTLP_ENDPOINT=otel-collector:4317`
 - `OTEL_EXPORTER_OTLP_INSECURE=true`
 - `OTEL_TRACES_SAMPLER_RATIO=1.0`
 - `OTEL_EXPORT_TIMEOUT=5s`

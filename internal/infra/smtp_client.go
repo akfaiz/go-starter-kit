@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"strings"
 
 	"github.com/akfaiz/go-mailgen"
@@ -15,8 +16,20 @@ import (
 
 type smtpMailer struct {
 	client  *mail.Client
-	appCfg  config.App
 	mailCfg config.Mail
+}
+
+type logMailer struct{}
+
+func NewMailer(cfg config.Config) (domain.Mailer, error) {
+	switch strings.ToLower(strings.TrimSpace(cfg.Mail.Driver)) {
+	case "log":
+		return &logMailer{}, nil
+	case "smtp":
+		return NewSMTPMailer(cfg)
+	default:
+		return nil, cerrors.WithStack(fmt.Errorf("unsupported mail driver: %s", cfg.Mail.Driver))
+	}
 }
 
 func NewSMTPMailer(cfg config.Config) (domain.Mailer, error) {
@@ -49,7 +62,6 @@ func NewSMTPMailer(cfg config.Config) (domain.Mailer, error) {
 
 	mailer := &smtpMailer{
 		client:  client,
-		appCfg:  cfg.App,
 		mailCfg: cfg.Mail,
 	}
 
@@ -91,6 +103,31 @@ func (m *smtpMailer) Send(ctx context.Context, message *domain.Mail) error {
 	if err := m.client.DialAndSendWithContext(ctx, msg); err != nil {
 		return cerrors.WithStack(err)
 	}
+
+	return nil
+}
+
+func (m *logMailer) Send(ctx context.Context, message *domain.Mail) error {
+	if message == nil {
+		return errors.New("mail message cannot be nil")
+	}
+	if len(message.To) == 0 {
+		return errors.New("email recipient cannot be empty")
+	}
+	if message.Subject == "" {
+		return errors.New("email subject cannot be empty")
+	}
+
+	slog.InfoContext(
+		ctx,
+		"email delivery via log driver",
+		"to", message.To,
+		"cc", message.Cc,
+		"bcc", message.Bcc,
+		"subject", message.Subject,
+		"text", message.Text,
+		"html", message.HTML,
+	)
 
 	return nil
 }

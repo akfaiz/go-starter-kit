@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/akfaiz/go-starter-kit/internal/config"
+	"github.com/akfaiz/go-starter-kit/internal/telemetry"
 	"github.com/hibiken/asynq"
 	"go.opentelemetry.io/otel"
 	semconv "go.opentelemetry.io/otel/semconv/v1.26.0"
@@ -39,7 +40,11 @@ func (c *Client) EnqueueContext(ctx context.Context, t *asynq.Task, opts ...asyn
 	)
 	defer span.End()
 
-	return c.client.EnqueueContext(ctx, t, opts...)
+	info, err := c.client.EnqueueContext(ctx, t, opts...)
+	if err != nil {
+		telemetry.RecordSpanError(span, err)
+	}
+	return info, err
 }
 
 func (c *Client) Enqueue(t *asynq.Task, opts ...asynq.Option) (*asynq.TaskInfo, error) {
