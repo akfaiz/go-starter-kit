@@ -79,7 +79,15 @@ var _ = BeforeSuite(func() {
 			},
 		},
 		Database: e2eDBContainer.Config,
+		Hash: config.Hash{
+			Driver:            "bcrypt",
+			Argon2Memory:      64 * 1024,
+			Argon2Iteration:   3,
+			Argon2Parallelism: 1,
+			BcryptCost:        10,
+		},
 		Mail: config.Mail{
+			Driver: "log",
 			SMTP: config.MailSMTP{
 				Host:     "localhost",
 				Port:     2525,

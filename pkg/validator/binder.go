@@ -12,6 +12,8 @@ import (
 	"github.com/labstack/echo/v5"
 )
 
+const typeLabelNumber = "number"
+
 // Binder wraps the default Echo binder and adds automatic validation.
 type Binder struct {
 	defaultBinder echo.Binder
@@ -178,7 +180,7 @@ func expectedTypeLabel(t reflect.Type) string {
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
 		reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64,
 		reflect.Float32, reflect.Float64:
-		return "number"
+		return typeLabelNumber
 	default:
 		return strings.ToLower(t.Kind().String())
 	}
