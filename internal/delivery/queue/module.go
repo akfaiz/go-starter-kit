@@ -19,9 +19,11 @@ var WorkerModule = fx.Module("queue_worker",
 		asynq.NewServeMux,
 		handler.NewMailTaskHandler,
 		server.NewServer,
+		server.NewQueueMetricsCollector,
 	),
 	fx.Invoke(Register),
 	fx.Invoke(server.RegisterServer),
+	fx.Invoke(server.RegisterQueueMetricsCollector),
 )
 
 type WorkerConfig struct {

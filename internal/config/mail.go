@@ -7,8 +7,9 @@ import (
 )
 
 type Mail struct {
-	SMTP MailSMTP
-	From MailFrom
+	Driver string `validate:"oneof=smtp log" label:"MAIL_DRIVER"`
+	SMTP   MailSMTP
+	From   MailFrom
 }
 
 type MailSMTP struct {
@@ -26,6 +27,7 @@ type MailFrom struct {
 
 func loadMailConfig() Mail {
 	return Mail{
+		Driver: strings.ToLower(strings.TrimSpace(env.GetString("MAIL_DRIVER", "smtp"))),
 		SMTP: MailSMTP{
 			Host:     env.GetString("MAIL_HOST", "127.0.0.1"),
 			Port:     env.GetInt("MAIL_PORT", 2525),

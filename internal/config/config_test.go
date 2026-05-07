@@ -17,6 +17,7 @@ func setValidEnv(t *testing.T) {
 	t.Setenv("JWT_REFRESH_EXPIRES_IN", "24h")
 	t.Setenv("MAIL_FROM_ADDRESS", "noreply@example.com")
 	t.Setenv("MAIL_FROM_NAME", "Example")
+	t.Setenv("MAIL_DRIVER", "smtp")
 	t.Setenv("MAIL_TLS_MODE", "starttls")
 	t.Setenv("OTEL_EXPORTER", "otlp")
 	t.Setenv("OTEL_TRACES_SAMPLER_RATIO", "1")
@@ -51,6 +52,16 @@ func TestLoadConfig_ReturnsErrorOnInvalidMailTLSMode(t *testing.T) {
 	err := cfg.Validate()
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "MAIL_TLS_MODE must be one of [starttls tls none]")
+}
+
+func TestLoadConfig_ReturnsErrorOnInvalidMailDriver(t *testing.T) {
+	setValidEnv(t)
+	t.Setenv("MAIL_DRIVER", "invalid")
+
+	cfg := loadConfig()
+	err := cfg.Validate()
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "MAIL_DRIVER must be one of [smtp log]")
 }
 
 func TestLoad_Success(t *testing.T) {
