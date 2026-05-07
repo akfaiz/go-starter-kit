@@ -11,7 +11,7 @@ localized validation, and full-stack observability.
 | Database | GORM + PostgreSQL (pgx driver) |
 | Cache & Queue | Redis (sessions, Asynq jobs) |
 | Auth | JWT (access + refresh tokens), OTP forgot-password flow |
-| Monitoring | Prometheus + Mimir + Loki + Grafana |
+| Monitoring | OpenTelemetry -> Mimir / Prometheus / Grafana |
 | Tracing | OpenTelemetry -> Tempo / Jaeger |
 | DI | Uber FX |
 | Email | go-mailgen |
@@ -41,19 +41,19 @@ make run
 | Grafana | `http://localhost:3000` (admin/admin) |
 | Jaeger UI | `http://localhost:16686` |
 
-## Observability Suite
+## Observability
 
-The kit includes a pre-configured monitoring stack in Grafana:
+The kit is fully instrumented with **OpenTelemetry** for metrics, tracing, and logs. Data is exported via OTLP to the observability stack defined in `docker-compose.yml` (Mimir, Tempo, Loki).
 
-- **[Overview](http://localhost:3000/d/go-api-starter-kit)**: High-level health, QPS, and P95 latency.
-- **[Error Analytics](http://localhost:3000/d/error-log-analytics)**: Real-time 4xx/5xx tracking and log patterns.
-- **[Go Runtime](http://localhost:3000/d/go-runtime-deep-dive)**: GC duration, heap allocation, and goroutine tracking.
-- **[Database connection](http://localhost:3000/d/db-connection-analytics)**: GORM/sql.DB pool utilization and wait times.
-- **[Queue Worker](http://localhost:3000/d/queue-worker-analytics)**: Asynq task throughput, latency, and queue sizes.
+Metrics include:
+- **HTTP**: Request rate, latency (P95/P99), and success rate via `echo-opentelemetry`.
+- **Database**: GORM/sql.DB connection pool utilization and wait times.
+- **Queue**: Asynq task throughput, failure rates, and queue sizes.
+- **Runtime**: Go runtime metrics including heap allocation, goroutines, and GC pause duration.
 
-Observability configs and Grafana provisioning are stored under `docker/`. Prometheus scrapes local metrics and remote-writes them to Mimir for long-term query/storage in Grafana.
+OpenTelemetry metrics are exported via OTLP to a collector or compatible backend (e.g., Mimir).
 
-Queue worker metrics are consolidated and exported via the main HTTP port (default `8080`) using `github.com/hibiken/asynq/x/metrics`, including queue-level metrics such as:
+Queue worker metrics are consolidated and exported via OpenTelemetry using `asynq.Inspector`, including queue-level metrics such as:
 - `asynq_tasks_enqueued_total{queue,state}`
 - `asynq_tasks_processed_total{queue}`
 - `asynq_tasks_failed_total{queue}`
@@ -104,7 +104,7 @@ docker run --rm -i grafana/k6 run - <scripts/load-test.js
 |-- main.go
 |-- cmd/               # CLI commands (serve, serve-all, queue, migrate)
 |-- db/migrations/
-|-- docker/            # Loki, Mimir, Prometheus, Promtail, Tempo, Grafana provisioning
+|-- docker/            # Loki, Mimir, Tempo, and OTEL Collector configurations
 |-- scripts/           # Utility scripts (including k6 load test)
 |-- pkg/               # Shared packages (env, problem, validator)
 |-- internal/

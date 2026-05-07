@@ -30,6 +30,11 @@ tidy:
 fmt:
 	go fmt ./...
 
+.PHONY: install-tools
+install-tools:
+	go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.12.2
+	go install github.com/onsi/ginkgo/v2/ginkgo@latest
+
 .PHONY: lint
 lint:
 	golangci-lint run --timeout 5m

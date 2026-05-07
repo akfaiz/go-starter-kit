@@ -9,8 +9,8 @@ import (
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
+	"gorm.io/plugin/opentelemetry/metrics"
 	"gorm.io/plugin/opentelemetry/tracing"
-	"gorm.io/plugin/prometheus"
 )
 
 func NewDatabase(cfg config.Config) (*gorm.DB, error) {
@@ -46,13 +46,7 @@ func NewDatabase(cfg config.Config) (*gorm.DB, error) {
 		return nil, cerrors.WithStack(err)
 	}
 
-	if err := db.Use(prometheus.New(prometheus.Config{
-		DBName:          cfg.Database.Name,
-		RefreshInterval: 15,
-		StartServer:     false, // Already running echo server
-	})); err != nil {
-		return nil, cerrors.WithStack(err)
-	}
+	metrics.ReportDBStatsMetrics(sqlDB)
 
 	return db, nil
 }

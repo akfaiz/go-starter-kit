@@ -1,7 +1,6 @@
 package server
 
 import (
-	"log/slog"
 	"net/http"
 	"time"
 
@@ -10,7 +9,6 @@ import (
 	"github.com/akfaiz/go-starter-kit/pkg/problem"
 	"github.com/akfaiz/go-starter-kit/pkg/validator"
 	echoopentelemetry "github.com/labstack/echo-opentelemetry"
-	echoprometheus "github.com/labstack/echo-prometheus"
 	"github.com/labstack/echo/v5"
 	echomiddleware "github.com/labstack/echo/v5/middleware"
 )
@@ -25,9 +23,8 @@ func New(cfg config.Config) *echo.Echo {
 
 	e.Pre(echomiddleware.RemoveTrailingSlash())
 	e.Use(echoopentelemetry.NewMiddleware(cfg.Telemetry.ServiceName))
-	e.Use(echoprometheus.NewMiddleware(cfg.App.Name))
 	e.Use(echomiddleware.Secure())
-	e.Use(appmiddleware.Logger(slog.Default()))
+	e.Use(appmiddleware.Logger())
 	e.Use(echomiddleware.Recover())
 	e.Use(echomiddleware.RequestID())
 	e.Use(echomiddleware.CORSWithConfig(echomiddleware.CORSConfig{
@@ -64,8 +61,6 @@ func New(cfg config.Config) *echo.Echo {
 			},
 		}))
 	}
-
-	e.GET("/metrics", echoprometheus.NewHandler())
 
 	return e
 }

@@ -84,6 +84,6 @@
 - Do not log raw tokens, OTP values, passwords, or reset links.
 
 ## Operational Features
-- **Prometheus Metrics:** Gathered via `echo-prometheus` and exposed at `/metrics`.
+- **Metrics:** Gathered via OpenTelemetry and exported via OTLP (no `/metrics` endpoint).
 - **Rate Limiting:** IP-based in-memory rate limiting, configurable via `SERVER_RATE_LIMIT_*` environment variables.
 - **Tracing:** OpenTelemetry spans are automatically propagated across layers.

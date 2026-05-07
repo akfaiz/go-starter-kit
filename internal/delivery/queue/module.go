@@ -12,7 +12,6 @@ var ClientModule = fx.Module("queue_client",
 	fx.Provide(
 		NewClient,
 	),
-	fx.Invoke(server.RegisterQueueMetrics),
 )
 
 var WorkerModule = fx.Module("queue_worker",

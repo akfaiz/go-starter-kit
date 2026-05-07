@@ -17,7 +17,7 @@ x-app-environment: &app-environment
   OTEL_ENABLED: ${OTEL_ENABLED}
   OTEL_SERVICE_NAME: ${OTEL_SERVICE_NAME}
   OTEL_EXPORTER: ${OTEL_EXPORTER}
-  OTEL_EXPORTER_OTLP_ENDPOINT: tempo:4317
+  OTEL_EXPORTER_OTLP_ENDPOINT: otel-collector:4317
   OTEL_EXPORTER_OTLP_INSECURE: ${OTEL_EXPORTER_OTLP_INSECURE}
   OTEL_TRACES_SAMPLER_RATIO: ${OTEL_TRACES_SAMPLER_RATIO}
   OTEL_EXPORT_TIMEOUT: ${OTEL_EXPORT_TIMEOUT}
@@ -63,7 +63,7 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-      tempo:
+      otel-collector:
         condition: service_started
     restart: unless-stopped
 
@@ -80,7 +80,7 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-      tempo:
+      otel-collector:
         condition: service_started
     restart: unless-stopped
 
@@ -114,14 +114,16 @@ services:
       start_period: 3s
     restart: unless-stopped
 
-  prometheus:
-    image: prom/prometheus:v3.1.0
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:latest
+    command: ["--config=/etc/otel-collector.yml"]
     volumes:
-      - ./docker/prometheus.yml:/etc/prometheus/prometheus.yml
-    command:
-      - '--config.file=/etc/prometheus/prometheus.yml'
-      - '--storage.tsdb.path=/prometheus'
+      - ./docker/otel-collector.yml:/etc/otel-collector.yml
+    ports:
+      - "4317:4317"
+      - "4318:4318"
     depends_on:
+      - tempo
       - mimir
     restart: unless-stopped
 
@@ -153,7 +155,6 @@ services:
       - GF_AUTH_ANONYMOUS_ENABLED=true
       - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
     depends_on:
-      - prometheus
       - mimir
       - tempo
       - loki
@@ -164,14 +165,6 @@ services:
     command: -config.file=/etc/loki/local-config.yaml
     volumes:
       - ./docker/loki-config.yml:/etc/loki/local-config.yaml
-    restart: unless-stopped
-
-  promtail:
-    image: grafana/promtail:3.3.2
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-      - ./docker/promtail-config.yml:/etc/promtail/config.yml
-    command: -config.file=/etc/promtail/config.yml
     restart: unless-stopped
 
   mcp-grafana:

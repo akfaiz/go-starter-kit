@@ -43,7 +43,6 @@ func newApp() (*fx.App, error) {
 	}
 	options := appOptions(cfg)
 	lang.Init()
-	logger.Init(cfg.App)
 	if err := fx.ValidateApp(options...); err != nil {
 		return nil, err
 	}
@@ -58,7 +57,7 @@ func appOptions(cfg config.Config) []fx.Option {
 			slogLogger.UseLogLevel(slog.LevelDebug)
 			return slogLogger
 		}),
-		fx.Supply(cfg, cfg.Auth, cfg.Auth.JWT, cfg.Database, cfg.Redis),
+		fx.Supply(cfg, cfg.App, cfg.Auth, cfg.Auth.JWT, cfg.Database, cfg.Redis),
 		infra.Module,
 		repository.Module,
 		hash.Module,
@@ -66,6 +65,7 @@ func appOptions(cfg config.Config) []fx.Option {
 		telemetry.Module,
 		queue.ClientModule,
 		deliveryhttp.Module,
+		fx.Invoke(logger.Init),
 		fx.Invoke(httpServerLifecycle),
 	}
 }

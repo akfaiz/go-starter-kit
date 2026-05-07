@@ -5,21 +5,20 @@ import (
 	"fmt"
 	"runtime"
 	"strings"
-	"time"
 
 	"github.com/akfaiz/go-starter-kit/internal/config"
 	"go.opentelemetry.io/otel"
-	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
 	"go.opentelemetry.io/otel/propagation"
-	"go.opentelemetry.io/otel/sdk/resource"
+	"go.opentelemetry.io/otel/sdk/log"
+	sdkmetric "go.opentelemetry.io/otel/sdk/metric"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/fx"
 )
 
 func NewTracerProvider(cfg config.Config) (*sdktrace.TracerProvider, error) {
-	if !cfg.Telemetry.Enabled || cfg.Telemetry.Exporter == "none" {
+	if !cfg.Telemetry.Enabled || cfg.Telemetry.Exporter == exporterNone {
 		tp := sdktrace.NewTracerProvider(sdktrace.WithSampler(sdktrace.NeverSample()))
 		otel.SetTracerProvider(tp)
 		otel.SetTextMapPropagator(
@@ -41,14 +40,9 @@ func NewTracerProvider(cfg config.Config) (*sdktrace.TracerProvider, error) {
 		return nil, fmt.Errorf("init otlp trace exporter: %w", err)
 	}
 
-	res, err := resource.New(
-		ctx,
-		resource.WithAttributes(
-			attribute.String("service.name", cfg.Telemetry.ServiceName),
-		),
-	)
+	res, err := newResource(ctx, cfg)
 	if err != nil {
-		return nil, fmt.Errorf("init telemetry resource: %w", err)
+		return nil, err
 	}
 
 	tp := sdktrace.NewTracerProvider(
@@ -64,12 +58,33 @@ func NewTracerProvider(cfg config.Config) (*sdktrace.TracerProvider, error) {
 	return tp, nil
 }
 
-func RegisterLifecycle(lc fx.Lifecycle, tp *sdktrace.TracerProvider) {
+func RegisterLifecycle(
+	lc fx.Lifecycle,
+	cfg config.Config,
+	tp *sdktrace.TracerProvider,
+	mp *sdkmetric.MeterProvider,
+	lp *log.LoggerProvider,
+) {
 	lc.Append(fx.Hook{
 		OnStop: func(ctx context.Context) error {
-			shutdownCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+			shutdownCtx, cancel := context.WithTimeout(ctx, cfg.Telemetry.ExportTimeout)
 			defer cancel()
-			return tp.Shutdown(shutdownCtx)
+
+			var errs []error
+			if err := tp.Shutdown(shutdownCtx); err != nil {
+				errs = append(errs, fmt.Errorf("shutdown tracer provider: %w", err))
+			}
+			if err := mp.Shutdown(shutdownCtx); err != nil {
+				errs = append(errs, fmt.Errorf("shutdown meter provider: %w", err))
+			}
+			if err := lp.Shutdown(shutdownCtx); err != nil {
+				errs = append(errs, fmt.Errorf("shutdown logger provider: %w", err))
+			}
+
+			if len(errs) > 0 {
+				return fmt.Errorf("telemetry shutdown errors: %v", errs)
+			}
+			return nil
 		},
 	})
 }

@@ -10,7 +10,7 @@ import (
 	"github.com/labstack/echo/v5/middleware"
 )
 
-func Logger(logger *slog.Logger) echo.MiddlewareFunc {
+func Logger() echo.MiddlewareFunc {
 	return middleware.RequestLoggerWithConfig(middleware.RequestLoggerConfig{
 		LogStatus:    true,
 		LogMethod:    true,
@@ -19,7 +19,7 @@ func Logger(logger *slog.Logger) echo.MiddlewareFunc {
 		LogRequestID: true,
 		HandleError:  true,
 		Skipper: func(c *echo.Context) bool {
-			skipPrefixes := []string{"/assets", "/docs", "/favicon.ico", "/metrics"}
+			skipPrefixes := []string{"/assets", "/docs", "/favicon.ico"}
 			for _, prefix := range skipPrefixes {
 				if len(c.Request().URL.Path) >= len(prefix) && c.Request().URL.Path[:len(prefix)] == prefix {
 					return true
@@ -59,7 +59,7 @@ func Logger(logger *slog.Logger) echo.MiddlewareFunc {
 				}
 				attrs = append(attrs, slog.GroupAttrs("error", errorAttrs...))
 			}
-			logger.LogAttrs(c.Request().Context(), level, "request", attrs...)
+			slog.LogAttrs(c.Request().Context(), level, "request", attrs...)
 			return nil
 		},
 	})
