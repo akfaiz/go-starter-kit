@@ -2,7 +2,6 @@ package logger
 
 import (
 	"context"
-	"encoding/json"
 	"io"
 	"log/slog"
 	"os"
@@ -74,7 +73,7 @@ func newEnrichAndFormatMiddleware() slogmulti.Middleware {
 	return slogmulti.NewHandleInlineMiddleware(
 		func(ctx context.Context, record slog.Record, next func(context.Context, slog.Record) error) error {
 			enriched := enrichRecord(ctx, record.Clone())
-			return next(ctx, formatRecordMessageAsJSON(enriched))
+			return next(ctx, enriched)
 		},
 	)
 }
@@ -180,75 +179,6 @@ func limitFrames(frames []sentry.Frame, maxFrames int) []sentry.Frame {
 		normalized = normalized[:maxFrames]
 	}
 	return normalized
-}
-
-func formatRecordMessageAsJSON(record slog.Record) slog.Record {
-	payload := map[string]any{
-		"msg": record.Message,
-	}
-
-	record.Attrs(func(attr slog.Attr) bool {
-		appendJSONAttr(payload, attr)
-		return true
-	})
-
-	msg, err := json.Marshal(payload)
-	if err != nil {
-		msg = []byte(record.Message)
-	}
-
-	inlined := slog.NewRecord(record.Time, record.Level, string(msg), record.PC)
-	record.Attrs(func(attr slog.Attr) bool {
-		inlined.AddAttrs(attr)
-		return true
-	})
-
-	return inlined
-}
-
-func appendJSONAttr(dest map[string]any, attr slog.Attr) {
-	value := attr.Value.Resolve()
-	if value.Kind() == slog.KindGroup {
-		group := map[string]any{}
-		for _, child := range value.Group() {
-			appendJSONAttr(group, child)
-		}
-		dest[attr.Key] = group
-		return
-	}
-
-	dest[attr.Key] = valueToAny(value)
-}
-
-func valueToAny(value slog.Value) any {
-	switch value.Kind() {
-	case slog.KindGroup:
-		group := map[string]any{}
-		for _, child := range value.Group() {
-			appendJSONAttr(group, child)
-		}
-		return group
-	case slog.KindLogValuer:
-		return valueToAny(value.Resolve())
-	case slog.KindString:
-		return value.String()
-	case slog.KindBool:
-		return value.Bool()
-	case slog.KindInt64:
-		return value.Int64()
-	case slog.KindUint64:
-		return value.Uint64()
-	case slog.KindFloat64:
-		return value.Float64()
-	case slog.KindDuration:
-		return value.Duration()
-	case slog.KindTime:
-		return value.Time()
-	case slog.KindAny:
-		return value.Any()
-	default:
-		return value.String()
-	}
 }
 
 func firstNonEmpty(values ...string) string {
