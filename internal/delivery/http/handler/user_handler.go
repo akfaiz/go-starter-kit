@@ -1,6 +1,8 @@
 package handler
 
 import (
+	"errors"
+
 	"github.com/akfaiz/go-starter-kit/internal/delivery/http/handler/dto"
 	"github.com/akfaiz/go-starter-kit/internal/domain"
 	"github.com/akfaiz/go-starter-kit/pkg/problem"
@@ -37,5 +39,23 @@ func (h *UserHandler) ListUsers(c *echo.Context) error {
 		paginatedUsers.Pagination,
 	)
 
+	return c.JSON(res.Status, res)
+}
+
+func (h *UserHandler) GetUser(c *echo.Context) error {
+	var req dto.UserGetRequest
+	if err := c.Bind(&req); err != nil {
+		return err
+	}
+
+	user, err := h.userService.FindByID(c.Request().Context(), req.ID)
+	if err != nil {
+		if errors.Is(err, domain.ErrResourceNotFound) {
+			return problem.ErrNotFound()
+		}
+		return problem.Wrap(err, problem.ErrInternalServer)
+	}
+
+	res := dto.NewResponse(200, dto.NewUserResponse(user))
 	return c.JSON(res.Status, res)
 }

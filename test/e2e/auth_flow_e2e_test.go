@@ -57,6 +57,56 @@ var _ = Describe("Auth Flow E2E", Label("e2e"), func() {
 		profileObj.Value("name").String().IsEqual("John Doe")
 	})
 
+	It("deletes the profile successfully", func() {
+		e2eExpect.POST("/api/v1/auth/register").
+			WithJSON(map[string]any{
+				"name":                  "Delete User",
+				"email":                 "delete@example.com",
+				"password":              "password123",
+				"password_confirmation": "password123",
+			}).
+			Expect().
+			Status(http.StatusCreated)
+
+		loginObj := e2eExpect.POST("/api/v1/auth/login").
+			WithJSON(map[string]any{
+				"email":    "delete@example.com",
+				"password": "password123",
+			}).
+			Expect().
+			Status(http.StatusOK).
+			JSON().
+			Object()
+
+		accessToken := loginObj.Value("data").Object().Value("access_token").String().NotEmpty().Raw()
+
+		e2eExpect.DELETE("/api/v1/profile").
+			WithHeader("Authorization", "Bearer "+accessToken).
+			WithJSON(map[string]any{
+				"current_password": "password123",
+			}).
+			Expect().
+			Status(http.StatusOK).
+			JSON().
+			Object().
+			HasValue("message", "Profile deleted successfully")
+
+		e2eExpect.POST("/api/v1/auth/login").
+			WithJSON(map[string]any{
+				"email":    "delete@example.com",
+				"password": "password123",
+			}).
+			Expect().
+			Status(http.StatusUnprocessableEntity).
+			JSON(test.ProblemJSON).
+			Object().
+			Value("errors").
+			Array().
+			Value(0).
+			Object().
+			HasValue("message", "These credentials do not match our records")
+	})
+
 	It("returns validation error for invalid credentials", func() {
 		e2eExpect.POST("/api/v1/auth/register").
 			WithJSON(map[string]any{

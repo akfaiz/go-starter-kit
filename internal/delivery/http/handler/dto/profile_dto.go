@@ -26,6 +26,10 @@ type ChangePasswordRequest struct {
 	NewPasswordConfirmation string `json:"new_password_confirmation" validate:"required,eqfield=NewPassword" label:"Confirm New Password"`
 }
 
+type DeleteProfileRequest struct {
+	CurrentPassword string `json:"current_password" validate:"required" label:"Current Password"`
+}
+
 func NewProfileResponse(user *domain.User) *ProfileResponse {
 	return &ProfileResponse{
 		ID:              user.ID,

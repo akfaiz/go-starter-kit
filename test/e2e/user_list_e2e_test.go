@@ -1,6 +1,7 @@
 package e2e_test
 
 import (
+	"fmt"
 	"net/http"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -64,6 +65,62 @@ var _ = Describe("User List E2E", Label("e2e"), func() {
 		respObj.Value("pagination").Object().Value("total_pages").Number().IsEqual(1)
 		respObj.Value("pagination").Object().Value("page").Number().IsEqual(1)
 		respObj.Value("pagination").Object().Value("limit").Number().IsEqual(10)
+	})
+
+	It("gets a user by id using a path parameter", func() {
+		e2eExpect.POST("/api/v1/auth/register").
+			WithJSON(map[string]any{
+				"name":                  "Admin",
+				"email":                 "admin@example.com",
+				"password":              "password123",
+				"password_confirmation": "password123",
+			}).
+			Expect().
+			Status(http.StatusCreated)
+
+		e2eExpect.POST("/api/v1/auth/register").
+			WithJSON(map[string]any{
+				"name":                  "User 1",
+				"email":                 "user1@example.com",
+				"password":              "password123",
+				"password_confirmation": "password123",
+			}).
+			Expect().
+			Status(http.StatusCreated)
+
+		loginObj := e2eExpect.POST("/api/v1/auth/login").
+			WithJSON(map[string]any{
+				"email":    "admin@example.com",
+				"password": "password123",
+			}).
+			Expect().
+			Status(http.StatusOK).
+			JSON().
+			Object()
+
+		accessToken := loginObj.Value("data").Object().Value("access_token").String().Raw()
+
+		usersObj := e2eExpect.GET("/api/v1/users").
+			WithQuery("page", 1).
+			WithQuery("limit", 10).
+			WithHeader("Authorization", "Bearer "+accessToken).
+			Expect().
+			Status(http.StatusOK).
+			JSON().
+			Object()
+
+		userID := usersObj.Value("data").Array().Value(0).Object().Value("id").Number().Raw()
+
+		userObj := e2eExpect.GET("/api/v1/users/"+fmt.Sprintf("%.0f", userID)).
+			WithHeader("Authorization", "Bearer "+accessToken).
+			Expect().
+			Status(http.StatusOK).
+			JSON().
+			Object().
+			Value("data").Object()
+
+		userObj.Value("id").Number().IsEqual(userID)
+		userObj.Value("email").String().IsEqual("admin@example.com")
 	})
 
 	It("returns unauthorized when token is missing", func() {

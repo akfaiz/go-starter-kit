@@ -17,6 +17,7 @@ profile:
   email_exists: "Email sudah ada"
   current_password_invalid: "Kata sandi saat ini salah"
   password_changed: "Kata sandi berhasil diubah"
+  deleted: "Profil berhasil dihapus"
 middleware:
   auth:
     missing_header: "header Authorization tidak ditemukan"

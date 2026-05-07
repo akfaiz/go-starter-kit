@@ -38,7 +38,9 @@ func TestRegister(t *testing.T) {
 		"GET /api/v1/profile":                              false,
 		"PUT /api/v1/profile":                              false,
 		"PUT /api/v1/profile/password":                     false,
+		"DELETE /api/v1/profile":                           false,
 		"GET /api/v1/users":                                false,
+		"GET /api/v1/users/:id":                            false,
 	}
 
 	for _, r := range routes {

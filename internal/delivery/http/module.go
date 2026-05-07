@@ -12,7 +12,8 @@ var Module = fx.Module("http",
 	fx.Provide(
 		server.New,
 		middleware.New,
+		routes.Register,
 	),
-	fx.Invoke(routes.Register),
+	// fx.Invoke(routes.Register),
 	handler.Module,
 )

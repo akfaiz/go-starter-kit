@@ -5,6 +5,7 @@ import (
 
 	"github.com/akfaiz/go-starter-kit/internal/delivery/http/handler"
 	"github.com/akfaiz/go-starter-kit/internal/domain"
+	"github.com/akfaiz/go-starter-kit/test"
 	"github.com/akfaiz/go-starter-kit/test/mocks"
 	"github.com/gavv/httpexpect/v2"
 	"github.com/labstack/echo/v5"
@@ -87,6 +88,44 @@ var _ = Describe("UserHandler", Label("unit", "handler"), func() {
 			expect.GET("/users").
 				Expect().
 				Status(http.StatusOK)
+		})
+	})
+
+	Describe("GetUser", func() {
+		BeforeEach(func() {
+			e.GET("/users/:id", h.GetUser, mockUserMiddleware)
+		})
+
+		It("returns a user by id", func() {
+			userService.EXPECT().
+				FindByID(gomock.Any(), int64(42)).
+				Return(&domain.User{
+					ID:    42,
+					Name:  "User 42",
+					Email: "user42@example.com",
+				}, nil)
+
+			expect.GET("/users/42").
+				Expect().
+				Status(http.StatusOK).
+				JSON().
+				Object().
+				Value("data").Object().
+				HasValue("id", 42).
+				HasValue("email", "user42@example.com")
+		})
+
+		It("returns not found when the user does not exist", func() {
+			userService.EXPECT().
+				FindByID(gomock.Any(), int64(42)).
+				Return(nil, domain.ErrResourceNotFound)
+
+			expect.GET("/users/42").
+				Expect().
+				Status(http.StatusNotFound).
+				JSON(test.ProblemJSON).
+				Object().
+				HasValue("title", "Resource not found")
 		})
 	})
 })

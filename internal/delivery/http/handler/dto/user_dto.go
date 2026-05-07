@@ -10,6 +10,10 @@ type UserListRequest struct {
 	PaginationRequest
 }
 
+type UserGetRequest struct {
+	ID int64 `param:"id" validate:"required" label:"User ID"`
+}
+
 type UserResponse struct {
 	ID              int64      `json:"id"`
 	Name            string     `json:"name"`

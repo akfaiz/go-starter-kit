@@ -17,6 +17,7 @@ profile:
   email_exists: "Email already exists"
   current_password_invalid: "Current password is incorrect"
   password_changed: "Password changed successfully"
+  deleted: "Profile deleted successfully"
 middleware:
   auth:
     missing_header: "missing Authorization header"

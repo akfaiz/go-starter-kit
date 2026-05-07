@@ -26,7 +26,7 @@ type RouteConfig struct {
 	HealthCheckHandler *handler.HealthCheckHandler
 }
 
-func Register(rc RouteConfig) {
+func Register(rc RouteConfig) echov5openapi.Generator {
 	rc.Echo.GET("/health", rc.HealthCheckHandler.HealthCheck)
 	r := echov5openapi.NewRouter(
 		rc.Echo,
@@ -43,6 +43,14 @@ func Register(rc RouteConfig) {
 	)
 
 	v1 := r.Group("/api/v1")
+	registerAuthRoutes(v1, rc)
+	registerProfileRoutes(v1, rc)
+	registerUserRoutes(v1, rc)
+
+	return r
+}
+
+func registerAuthRoutes(v1 echov5openapi.Router, rc RouteConfig) {
 	auth := v1.Group("/auth").With(option.GroupTags("Authentication"))
 	auth.POST("/register", rc.AuthHandler.Register).With(
 		option.Summary("User Registration"),
@@ -80,7 +88,9 @@ func Register(rc RouteConfig) {
 		option.Response(200, new(dto.GenericResponse)),
 		option.Response(422, new(dto.ValidationErrorResponse)),
 	)
+}
 
+func registerProfileRoutes(v1 echov5openapi.Router, rc RouteConfig) {
 	profile := v1.Group("/profile", rc.AuthMiddleware).With(
 		option.GroupTags("Profile"),
 		option.GroupSecurity("bearerAuth"),
@@ -103,7 +113,16 @@ func Register(rc RouteConfig) {
 		option.Response(401, new(dto.ErrorResponse)),
 		option.Response(422, new(dto.ValidationErrorResponse)),
 	)
+	profile.DELETE("", rc.ProfileHandler.DeleteProfile).With(
+		option.Summary("Delete profile"),
+		option.Request(new(dto.DeleteProfileRequest)),
+		option.Response(200, new(dto.GenericResponse)),
+		option.Response(401, new(dto.ErrorResponse)),
+		option.Response(422, new(dto.ValidationErrorResponse)),
+	)
+}
 
+func registerUserRoutes(v1 echov5openapi.Router, rc RouteConfig) {
 	users := v1.Group("/users", rc.AuthMiddleware).With(
 		option.GroupTags("Users"),
 		option.GroupSecurity("bearerAuth"),
@@ -113,5 +132,13 @@ func Register(rc RouteConfig) {
 		option.Request(new(dto.UserListRequest)),
 		option.Response(200, new(dto.PaginatedResponse[*dto.UserResponse])),
 		option.Response(401, new(dto.ErrorResponse)),
+	)
+	users.GET("/:id", rc.UserHandler.GetUser).With(
+		option.Summary("Get user by ID"),
+		option.Request(new(dto.UserGetRequest)),
+		option.Response(200, new(dto.Response[dto.UserResponse])),
+		option.Response(400, new(dto.ErrorResponse)),
+		option.Response(401, new(dto.ErrorResponse)),
+		option.Response(404, new(dto.ErrorResponse)),
 	)
 }

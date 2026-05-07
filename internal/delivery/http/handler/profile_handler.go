@@ -98,3 +98,28 @@ func (h *ProfileHandler) ChangePassword(c *echo.Context) error {
 	res := dto.NewMessage(200, i18n.T(c, "profile.password_changed"))
 	return c.JSON(res.Status, res)
 }
+
+func (h *ProfileHandler) DeleteProfile(c *echo.Context) error {
+	var req dto.DeleteProfileRequest
+	if err := c.Bind(&req); err != nil {
+		return err
+	}
+
+	claims := auth.GetUser(c)
+	if claims == nil {
+		return problem.ErrUnauthorized()
+	}
+
+	if err := h.userService.Delete(c.Request().Context(), claims.ID, req.CurrentPassword); err != nil {
+		if errors.Is(err, domain.ErrInvalidPassword) {
+			return validator.NewError(
+				"current_password",
+				i18n.T(c, "profile.current_password_invalid"),
+			)
+		}
+		return problem.Wrap(err, problem.ErrInternalServer)
+	}
+
+	res := dto.NewMessage(200, i18n.T(c, "profile.deleted"))
+	return c.JSON(res.Status, res)
+}

@@ -136,4 +136,40 @@ var _ = Describe("ProfileHandler", Label("unit", "handler"), func() {
 				HasValue("message", "Password changed successfully")
 		})
 	})
+
+	Describe("DeleteProfile", func() {
+		BeforeEach(func() {
+			e.DELETE("/profile", h.DeleteProfile, mockUserMiddleware)
+		})
+
+		It("deletes the profile and returns success message", func() {
+			userService.EXPECT().Delete(gomock.Any(), int64(1), "delete-me").Return(nil)
+
+			expect.DELETE("/profile").
+				WithJSON(map[string]any{
+					"current_password": "delete-me",
+				}).
+				Expect().
+				Status(http.StatusOK).
+				JSON().
+				Object().
+				HasValue("message", "Profile deleted successfully")
+		})
+
+		It("returns validation error when current password is invalid", func() {
+			userService.EXPECT().Delete(gomock.Any(), int64(1), "delete-me").Return(domain.ErrInvalidPassword)
+
+			expect.DELETE("/profile").
+				WithJSON(map[string]any{
+					"current_password": "delete-me",
+				}).
+				Expect().
+				Status(http.StatusUnprocessableEntity).
+				JSON(test.ProblemJSON).
+				Object().
+				Value("errors").Array().
+				Value(0).Object().
+				HasValue("message", "Current password is incorrect")
+		})
+	})
 })
