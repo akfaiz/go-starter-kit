@@ -6,7 +6,7 @@ type Response[T any] struct {
 	Data    T      `json:"data,omitempty"`
 }
 
-type GenericResponse struct {
+type MessageResponse struct {
 	Status  int    `json:"status"            example:"200"`
 	Message string `json:"message,omitempty" example:"Operation successful"`
 }
@@ -43,8 +43,8 @@ func NewResponse[T any](status int, data T, message ...string) Response[T] {
 	}
 }
 
-func NewMessage(status int, message string) GenericResponse {
-	return GenericResponse{
+func NewMessage(status int, message string) MessageResponse {
+	return MessageResponse{
 		Status:  status,
 		Message: message,
 	}

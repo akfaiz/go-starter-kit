@@ -39,6 +39,7 @@ func Register(rc RouteConfig) echov5openapi.Generator {
 			fmt.Sprintf("http://localhost:%d", rc.Config.Server.Port),
 			option.ServerDescription("Local server"),
 		),
+		option.WithOpenAPIVersion("3.2.0"),
 		option.WithScalar(),
 	)
 
@@ -73,19 +74,19 @@ func registerAuthRoutes(v1 echov5openapi.Router, rc RouteConfig) {
 	auth.POST("/forgot-password/send-otp", rc.AuthHandler.SendForgotPasswordOTP).With(
 		option.Summary("Send forgot password OTP"),
 		option.Request(new(dto.SendForgotPasswordOTPRequest)),
-		option.Response(200, new(dto.GenericResponse)),
+		option.Response(200, new(dto.MessageResponse)),
 		option.Response(422, new(dto.ValidationErrorResponse)),
 	)
 	auth.POST("/forgot-password/verify-otp", rc.AuthHandler.VerifyForgotPasswordOTP).With(
 		option.Summary("Verify forgot password OTP"),
 		option.Request(new(dto.VerifyForgotPasswordOTPRequest)),
-		option.Response(200, new(dto.GenericResponse)),
+		option.Response(200, new(dto.MessageResponse)),
 		option.Response(422, new(dto.ValidationErrorResponse)),
 	)
 	auth.POST("/forgot-password/reset-password", rc.AuthHandler.ResetPasswordWithOTP).With(
 		option.Summary("Reset password with OTP"),
 		option.Request(new(dto.ResetPasswordWithOTPRequest)),
-		option.Response(200, new(dto.GenericResponse)),
+		option.Response(200, new(dto.MessageResponse)),
 		option.Response(422, new(dto.ValidationErrorResponse)),
 	)
 }
@@ -109,14 +110,14 @@ func registerProfileRoutes(v1 echov5openapi.Router, rc RouteConfig) {
 	profile.PUT("/password", rc.ProfileHandler.ChangePassword).With(
 		option.Summary("Update password"),
 		option.Request(new(dto.ChangePasswordRequest)),
-		option.Response(200, new(dto.GenericResponse)),
+		option.Response(200, new(dto.MessageResponse)),
 		option.Response(401, new(dto.ErrorResponse)),
 		option.Response(422, new(dto.ValidationErrorResponse)),
 	)
 	profile.DELETE("", rc.ProfileHandler.DeleteProfile).With(
 		option.Summary("Delete profile"),
 		option.Request(new(dto.DeleteProfileRequest)),
-		option.Response(200, new(dto.GenericResponse)),
+		option.Response(200, new(dto.MessageResponse)),
 		option.Response(401, new(dto.ErrorResponse)),
 		option.Response(422, new(dto.ValidationErrorResponse)),
 	)

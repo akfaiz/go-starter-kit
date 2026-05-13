@@ -19,7 +19,6 @@ import (
 	"github.com/akfaiz/go-starter-kit/test"
 	"github.com/gavv/httpexpect/v2"
 	"github.com/labstack/echo/v5"
-	"github.com/oaswrap/spec/adapter/echov5openapi"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	redisclient "github.com/redis/go-redis/v9"
@@ -35,16 +34,15 @@ func TestE2E(t *testing.T) {
 }
 
 var (
-	e2eCtx              context.Context
-	e2eDBContainer      *test.DBContainer
-	e2eRedisC           *rediscontainer.RedisContainer
-	e2eDB               *gorm.DB
-	e2eRDB              *redisclient.Client
-	e2eEcho             *echo.Echo
-	e2eFXApp            *fx.App
-	e2eServer           *httptest.Server
-	e2eExpect           *httpexpect.Expect
-	e2eOpenAPIGenerator echov5openapi.Generator
+	e2eCtx         context.Context
+	e2eDBContainer *test.DBContainer
+	e2eRedisC      *rediscontainer.RedisContainer
+	e2eDB          *gorm.DB
+	e2eRDB         *redisclient.Client
+	e2eEcho        *echo.Echo
+	e2eFXApp       *fx.App
+	e2eServer      *httptest.Server
+	e2eExpect      *httpexpect.Expect
 )
 
 var _ = BeforeSuite(func() {
@@ -126,7 +124,7 @@ var _ = BeforeSuite(func() {
 		telemetry.Module,
 		deliveryhttp.Module,
 		queue.ClientModule,
-		fx.Populate(&e2eEcho, &e2eDB, &e2eRDB, &e2eOpenAPIGenerator),
+		fx.Populate(&e2eEcho, &e2eDB, &e2eRDB),
 	)
 	Expect(e2eFXApp.Err()).NotTo(HaveOccurred())
 
@@ -156,13 +154,5 @@ var _ = AfterSuite(func() {
 	}
 	if e2eRedisC != nil {
 		_ = testcontainers.TerminateContainer(e2eRedisC)
-	}
-	if e2eOpenAPIGenerator != nil {
-		err := e2eOpenAPIGenerator.Validate()
-		Expect(err).NotTo(HaveOccurred())
-		err = e2eOpenAPIGenerator.WriteSchemaTo("../../docs/openapi.yml")
-		Expect(err).NotTo(HaveOccurred())
-		err = e2eOpenAPIGenerator.WriteSchemaTo("../../docs/openapi.json")
-		Expect(err).NotTo(HaveOccurred())
 	}
 })
